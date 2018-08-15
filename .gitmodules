@@ -1,0 +1,6 @@
+[submodule "skynet"]
+	path = skynet
+	url = https://github.com/ZhouWeikuan/skynet
+[submodule "pbc"]
+	path = pbc
+	url = https://github.com/ZhouWeikuan/pbc

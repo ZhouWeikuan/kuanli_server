@@ -1,0 +1,27 @@
+AgentServer = {
+    debugPort = 8000,
+    nodePort  = 8100,
+    tcpPort   = 8200,
+    webPort   = 8300,
+    maxIndex  = 1,
+}
+
+MainServer = {
+    debugPort = 8500,
+    nodePort  = 8550,
+    maxIndex  = 1,
+}
+
+GameServer = {
+    debugPort = 9000,
+    nodePort  = 9500,
+    maxIndex  = 5,
+}
+
+MySite = {
+    -- private addrs, public addrs
+    node1 = {"11.11.1.11", "11.11.1.11"},
+    node2 = {"11.11.1.12", "11.11.1.12"},
+    node3 = {"11.11.1.13", "11.11.1.13"},
+}
+
