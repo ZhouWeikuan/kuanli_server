@@ -12,7 +12,7 @@ MainServer = {
     maxIndex  = 1,
 }
 
-GameServer = {
+HallServer = {
     debugPort = 9000,
     nodePort  = 9500,
     maxIndex  = 5,

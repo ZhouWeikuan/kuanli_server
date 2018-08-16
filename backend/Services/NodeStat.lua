@@ -7,8 +7,8 @@ local skynet = require "skynet"
 
 local function dump_info()
     local srv = skynet.uniqueservice("NodeInfo")
-    local name = skynet.call(srv, "lua", "getConfig", "appName")
-    local ret = table.concat({"Curr Node: ", skynet.self(), "appName", name}, "\t")
+    local nodeInfo = skynet.call(srv, "lua", "getConfig", "nodeInfo")
+    local ret = table.concat({"Curr Node: ", skynet.self(), "appName", nodeInfo.appName}, "\t")
     return ret
 end
 

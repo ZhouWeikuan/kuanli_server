@@ -5,6 +5,7 @@
 
 ---! 依赖库
 local skynet    = require "skynet"
+local cluster   = require "skynet.cluster"
 
 ---! 服务的启动函数
 skynet.start(function()
@@ -17,14 +18,27 @@ skynet.start(function()
     ---! 启动console服务
     skynet.newservice("console")
 
-    ---! 启动 info :d 节点状态信息 服务
-    skynet.uniqueservice("NodeStat")
-
     ---! 启动debug_console服务
-    local port = skynet.call(srv, "lua", "getConfig", "server", "debugPort")
+    local port = skynet.call(srv, "lua", "getConfig", "nodeInfo", "debugPort")
     assert(port >= 0)
     print("debug port is", port)
     skynet.newservice("debug_console", port)
+
+    ---! 启动 info :d 节点状态信息 服务
+    skynet.uniqueservice("NodeStat")
+
+    local list = skynet.call(srv, "lua", "getConfig", "clusterList")
+    list["__nowaiting"] = true
+    cluster.reload(list)
+
+    local appName = skynet.call(srv, "lua", "getConfig", "nodeInfo", "appName")
+    cluster.open(appName)
+
+    ---! 启动 NodeLink 服务
+    skynet.newservice("NodeLink")
+
+    ---! 启动 MainInfo 服务
+    skynet.newservice("MainInfo")
 
     ---! 完成初始化，退出本服务
     skynet.exit()

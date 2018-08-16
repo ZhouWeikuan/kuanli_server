@@ -3,10 +3,11 @@
 ---! @brief 保存当前节点信息，供其它服务使用
 --------------------------------------------------------------
 
+---! 依赖
 local skynet    = require "skynet"
 local cluster   = require "skynet.cluster"
 
-local clusterHelper = require "ClusterHelper"
+local clsHelper = require "ClusterHelper"
 
 ---! 信息
 local info = {}
@@ -15,12 +16,15 @@ local info = {}
 local CMD = {}
 
 function CMD.initNode ()
-    clusterHelper.parseConfig(info)
-
-    cluster.reload(info.clusterList)
-    cluster.open(info.appName)
+    clsHelper.parseConfig(info)
 
     return 0
+end
+
+function CMD.getServiceAddr(key)
+    local ret = info[key]
+    ret = ret or -1
+    return ret
 end
 
 function CMD.getConfig (...)
@@ -30,11 +34,11 @@ function CMD.getConfig (...)
         if ret[key] then
             ret = ret[key]
         else
-            return -1
+            return {}
         end
     end
 
-    ret = ret or -1
+    ret = ret or {}
     return ret
 end
 
@@ -57,9 +61,50 @@ function CMD.updateConfig (value, ...)
     return 0
 end
 
+---! 获得本节点的注册信息
+function CMD.getRegisterInfo ()
+end
+
+---! 下线NodeLink
+local function doNodeOff ()
+    local old = info[clsHelper.kNodeLink]
+    if old then
+        skynet.send(old, "lua", "exit")
+        info[clsHelper.kNodeLink] = nil
+    end
+end
+
+---! 实时监控NodeLink
+local function checkNode (nodeLink)
+    pcall(skynet.call, nodeLink, "debug", "LINK")
+    if info[clsHelper.kNodeLink] == nodeLink then
+        info[clsHelper.kNodeLink] = nil
+    end
+end
+
+---! 收到通知，NodeLink已经上线
+function CMD.nodeOn (nodeLink)
+    CMD.nodeOff()
+
+    info[clsHelper.kNodeLink] = nodeLink
+    skynet.fork(function()
+        checkNode(nodeLink)
+    end)
+
+    return 0
+end
+
+---! 获得下线通知
+function CMD.nodeOff ()
+    doNodeOff()
+
+    return 0
+end
+
 
 ---! 启动函数
 skynet.start(function()
+    cluster.register("NodeInfo", skynet.self())
     ---! 注册skynet消息服务
     skynet.dispatch("lua", function(_,_, cmd, ...)
         local f = CMD[cmd]
