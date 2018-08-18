@@ -1,14 +1,15 @@
 ----------------------------------
 ---! @file
----! @brief MainServer的启动配置文件
+---! @brief HallServer服务器的参数设置
 ----------------------------------
 local _root		= "./"
 local _skynet	= _root.."../skynet/"
 
----! MainServer 用到的参数 从 命令行传的参数
+---! HallServer 用到的参数 从 命令行传的参数
 NodeName    =  "$NodeName"
-ServerKind  =  "MainServer"
+ServerKind  =  "HallServer"
 ServerNo    =  "$ServerNo"
+HallConfig  =  "$HallConfig"
 
 ----------------------------------
 ---!  自定义参数
@@ -34,7 +35,7 @@ logger      = _root .. "/logs/" .. app_name .. ".log"
 bootstrap   = "snlua bootstrap"
 
 ---!  snlua用到的参数
-lua_path    = _skynet.."lualib/?.lua;"..app_root.."?.lua;".._root .."Algos/?.lua;".._root.."Helpers/?.lua"
+lua_path    = _skynet.."lualib/?.lua;"..app_root.."?.lua;".._root .."Algos/?.lua;".._root.."Classes/?.lua;".._root.."Helpers/?.lua;" .._root.."Stages/?.lua"
 lua_cpath   = _skynet.."luaclib/?.so;"..app_root.."cservices/?.so"
 luaservice  = _skynet.."service/?.lua;".. app_root .. "?.lua;" .._root.."Services/?.lua;".._root.."managers/?.lua"
 lualoader   = _skynet.."lualib/loader.lua"

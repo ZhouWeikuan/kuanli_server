@@ -26,26 +26,36 @@ setmetatable(class, {
 class.kNodeInfo = "NodeInfo"
 class.kNodeLink = "NodeLink"
 class.kMainInfo = "MainInfo"
+class.kMainNode = "MainNode"
 
 class.kAgentServer = "AgentServer"
 class.kHallServer = "HallServer"
 class.kMainServer = "MainServer"
+
+class.kHallConfig = "HallConfig"
+class.kHallService = "HallService"
+class.kDBService = "DBService"
+class.kWatchDog = "WatchDog"
 
 ---! 获取config.cluster列表和各服务器列表
 class.getAllNodes = function (cfg, info)
     local all = {class.kAgentServer, class.kHallServer, class.kMainServer}
     local ret = {}
     for nodeName, nodeValue in pairs(cfg.MySite) do
-        for _, serverName in ipairs(all) do
-            local list = info[serverName] or {}
-            info[serverName] = list
+        for _, serverKind in ipairs(all) do
+            local list = info[serverKind] or {}
+            info[serverKind] = list
 
-            local srv = cfg[serverName]
-            for i=0,srv.maxIndex do
-                local name  = string.format("%s_%s%d", nodeName, serverName, i)
-                local value = string.format("%s:%d", nodeValue[1], srv.nodePort + i)
-                ret[name] = value
-                table.insert(list, name)
+            if not nodeValue[2] and serverKind == class.kAgentServer then
+                -- AgentServer must have public address
+            else
+                local srv = cfg[serverKind]
+                for i=0,srv.maxIndex do
+                    local name  = string.format("%s_%s%d", nodeName, serverKind, i)
+                    local value = string.format("%s:%d", nodeValue[1], srv.nodePort + i)
+                    ret[name] = value
+                    table.insert(list, name)
+                end
             end
         end
     end
@@ -62,9 +72,10 @@ class.getNodeInfo = function (cfg)
     ret.privAddr = node[1]
     ret.publAddr = node[2]
 
-    ret.serverKind    = skynet.getenv("ServerName")
+    ret.serverKind    = skynet.getenv("ServerKind")
     ret.serverIndex   = tonumber(skynet.getenv("ServerNo"))
     ret.serverName    = ret.serverKind .. ret.serverIndex
+    ret.numPlayers    = 0
 
     local conf = cfg[ret.serverKind]
     assert(ret.serverIndex >= 0 and ret.serverIndex <= conf.maxIndex )
@@ -134,7 +145,7 @@ class.cluster_addr = function (app, service)
     if not ret then
         skynet.error(app, "is not online")
         return
-    elseif addr < 0 then
+    elseif addr == "" then
         skynet.error(app, "can't get", service, "from NodeInfo's config")
         return
     end

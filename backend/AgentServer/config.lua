@@ -1,13 +1,13 @@
 ----------------------------------
 ---! @file
----! @brief MainServer的启动配置文件
+---! @brief AgentServer的启动配置文件
 ----------------------------------
 local _root		= "./"
 local _skynet	= _root.."../skynet/"
 
----! MainServer 用到的参数 从 命令行传的参数
+---! AgentServer 用到的参数 从 命令行传的参数
 NodeName    =  "$NodeName"
-ServerKind  =  "MainServer"
+ServerKind  =  "AgentServer"
 ServerNo    =  "$ServerNo"
 
 ----------------------------------

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### example
-### sh MainServer/start.sh node1 1
+### sh AgentServer/start.sh node1 1
 
 ## NodeName = node1
 ## ServerNo = 1
@@ -17,8 +17,8 @@ then
     exit
 fi
 
-echo "NodeName = $NodeName, ServerKind = MainServer, ServerNo = $ServerNo"
+echo "NodeName = $NodeName, ServerKind = AgentServer, ServerNo = $ServerNo"
 
 ### so we can distinguish different skynet processes
-../skynet/skynet MainServer/config.lua $NodeName $ServerNo
+../skynet/skynet AgentServer/config.lua $NodeName $ServerNo
 

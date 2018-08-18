@@ -18,12 +18,12 @@ local CMD = {}
 function CMD.initNode ()
     clsHelper.parseConfig(info)
 
-    return 0
+    return ""
 end
 
 function CMD.getServiceAddr(key)
     local ret = info[key]
-    ret = ret or -1
+    ret = ret or ""
     return ret
 end
 
@@ -34,11 +34,11 @@ function CMD.getConfig (...)
         if ret[key] then
             ret = ret[key]
         else
-            return {}
+            return ""
         end
     end
 
-    ret = ret or {}
+    ret = ret or ""
     return ret
 end
 
@@ -52,17 +52,28 @@ function CMD.updateConfig (value, ...)
             one = {}
             ret[key] = one
         elseif type(one) ~= "table" then
-            return -1
+            return ""
         end
         ret = one
     end
 
     ret[last] = value
-    return 0
+    return ""
 end
 
 ---! 获得本节点的注册信息
 function CMD.getRegisterInfo ()
+    local nodeInfo = info.nodeInfo
+    local ret = {}
+    ret.kind = nodeInfo.serverKind
+    ret.name = nodeInfo.appName
+    ret.addr = nodeInfo.privAddr
+    ret.port = nodeInfo.debugPort
+    ret.numPlayers = nodeInfo.numPlayers
+
+    ret.conf = info[clsHelper.kHallConfig]
+
+    return ret
 end
 
 ---! 下线NodeLink
@@ -75,8 +86,9 @@ local function doNodeOff ()
 end
 
 ---! 实时监控NodeLink
-local function checkNode (nodeLink)
+local function monitorMyNodeLink (nodeLink)
     pcall(skynet.call, nodeLink, "debug", "LINK")
+    skynet.error("my nodelink is offline", nodeLink)
     if info[clsHelper.kNodeLink] == nodeLink then
         info[clsHelper.kNodeLink] = nil
     end
@@ -88,17 +100,17 @@ function CMD.nodeOn (nodeLink)
 
     info[clsHelper.kNodeLink] = nodeLink
     skynet.fork(function()
-        checkNode(nodeLink)
+        monitorMyNodeLink(nodeLink)
     end)
 
-    return 0
+    return ""
 end
 
 ---! 获得下线通知
 function CMD.nodeOff ()
     doNodeOff()
 
-    return 0
+    return ""
 end
 
 
