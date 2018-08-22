@@ -83,6 +83,11 @@ local function doNodeOff ()
         skynet.send(old, "lua", "exit")
         info[clsHelper.kNodeLink] = nil
     end
+
+    old = info[clsHelper.kMainInfo]
+    if old then
+        skynet.send(old, "lua", "nodeOff")
+    end
 end
 
 ---! 实时监控NodeLink

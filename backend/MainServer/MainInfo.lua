@@ -16,7 +16,7 @@ local strHelper = require "StringHelper"
 local nodeInfo = nil
 local appName = nil
 
-local info = {}
+local servers = {}
 local main = {}
 
 ---! detect master MainServer
@@ -72,7 +72,7 @@ end
 
 ---! 对方节点断线
 local function disconnect_kind_server (kind, name)
-    local list = info[kind] or {}
+    local list = servers[kind] or {}
     list.name = nil
 end
 
@@ -120,9 +120,14 @@ function CMD.holdMain (otherName)
     return 0
 end
 
+---! get noticed of my node off
+function CMD.nodeOff ()
+    servers = {}
+end
+
 ---! ask all possible nodes to register them
 function CMD.askAll ()
-    info = {}
+    servers = {}
 
     local all = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kAgentServer)
     local list = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kHallServer)
@@ -143,8 +148,8 @@ function CMD.regNode (node)
     local kind = node.kind
     assert(filterHelper.isElementInArray(kind, {clsHelper.kAgentServer, clsHelper.kHallServer}))
 
-    local list = info[kind] or {}
-    info[kind] = list
+    local list = servers[kind] or {}
+    servers[kind] = list
 
     local one = {}
     one.clusterName   = node.name
@@ -177,6 +182,34 @@ function CMD.regNode (node)
     return 0
 end
 
+---! 记住游戏玩家所做的服务节点
+local appGameUserDelayTime = 10 * 60
+local function get_path_hall_user (uid, gameId)
+    return string.format("onlinePlayers.%s.%s", uid, gameId)
+end
+
+---! 记录游戏玩家
+function CMD.keepAppGameUser (uid, gameId, appName)
+    local path = get_path_hall_user(uid, gameId)
+    local redis = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kRedisService)
+    skynet.call(redis, "lua", "runCmd", "SET", path, appName)
+    return skynet.call(redis, "lua", "runCmd", "EXPIRE", path, appGameUserDelayTime)
+end
+
+---! 清除游戏玩家
+function CMD.freeAppGameUser (uid, gameId)
+    local path = get_path_hall_user(uid, gameId)
+    local redis = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kRedisService)
+    return skynet.call(redis, "lua", "runCmd", "DEL", path)
+end
+
+---! 获得游戏玩家所在的节点
+function CMD.getAppGameUser (uid, gameId)
+    local path = get_path_hall_user(uid, gameId)
+    local redis = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kRedisService)
+    return skynet.call(redis, "lua", "runCmd", "GET", path)
+end
+
 ---! get the server stat
 function CMD.getStat ()
     local agentNum, hallNum = 0,0
@@ -187,7 +220,7 @@ function CMD.getStat ()
     table.insert(arr, "[Agent List]\n")
 
     local agentCount = 0
-    local list = info[clsHelper.kAgentServer] or {}
+    local list = servers[clsHelper.kAgentServer] or {}
     for _, one in pairs(list) do
         agentCount = agentCount + one.numPlayers
         agentNum = agentNum + 1
@@ -197,7 +230,7 @@ function CMD.getStat ()
 
     local hallCount = 0
     table.insert(arr, "\n[Hall List]\n")
-    list = info[clsHelper.kHallServer] or {}
+    list = servers[clsHelper.kHallServer] or {}
     table.sort(list, function(a, b)
         return a.clusterName < b.clusterName
     end)
@@ -237,8 +270,11 @@ skynet.start(function()
 
     ---! 获得NodeInfo 服务
     nodeInfo = skynet.uniqueservice(clsHelper.kNodeInfo)
+
+    ---! 注册自己的地址
     skynet.call(nodeInfo, "lua", "updateConfig", skynet.self(), clsHelper.kMainInfo)
 
+    ---! 获得appName
     appName = skynet.call(nodeInfo, "lua", "getConfig", "nodeInfo", "appName")
 
     ---! ask all nodes to register

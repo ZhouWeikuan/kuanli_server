@@ -29,13 +29,15 @@ class.kMainInfo = "MainInfo"
 class.kMainNode = "MainNode"
 
 class.kAgentServer = "AgentServer"
-class.kHallServer = "HallServer"
-class.kMainServer = "MainServer"
+class.kHallServer  = "HallServer"
+class.kMainServer  = "MainServer"
 
-class.kHallConfig = "HallConfig"
-class.kHallService = "HallService"
-class.kDBService = "DBService"
-class.kWatchDog = "WatchDog"
+class.kHallConfig   = "HallConfig"
+class.kHallService  = "HallService"
+class.kDBService    = "DBService"
+class.kMySQLService = "MySQLService"
+class.kRedisService = "RedisService"
+class.kWatchDog     = "WatchDog"
 
 ---! 获取config.cluster列表和各服务器列表
 class.getAllNodes = function (cfg, info)

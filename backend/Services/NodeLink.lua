@@ -11,18 +11,18 @@ local clsHelper = require "ClusterHelper"
 
 ---! 信息
 local nodeInfo = nil
-local theMainNode = nil
+local theMainApp = nil
 
 ---! 保持远程节点，对方断线时切换
 local function holdMainServer(thisInfo, list)
-    if theMainNode then
+    if theMainApp then
         return
     end
 
     for _, appName in ipairs(list) do
         local addr = clsHelper.cluster_addr(appName, clsHelper.kNodeLink)
         if addr then
-            theMainNode = appName
+            theMainApp = appName
             skynet.call(nodeInfo, "lua", "updateConfig", appName, clsHelper.kMainNode)
 
             local mainInfoAddr = clsHelper.cluster_addr(appName, clsHelper.kMainInfo)
@@ -33,7 +33,7 @@ local function holdMainServer(thisInfo, list)
                 pcall(cluster.call, appName, addr, "LINK", true)
                 skynet.error("disconnect the main server", appName)
 
-                theMainNode = nil
+                theMainApp = nil
                 skynet.call(nodeInfo, "lua", "updateConfig", nil, clsHelper.kMainNode)
                 holdMainServer(thisInfo, list)
             end)
@@ -44,7 +44,7 @@ end
 
 ---! 向 MainServer 注册自己
 local function registerSelf ()
-    if theMainNode then
+    if theMainApp then
         return
     end
 

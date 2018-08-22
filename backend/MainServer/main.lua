@@ -38,13 +38,11 @@ skynet.start(function()
     ---! 启动 MainInfo 服务
     skynet.uniqueservice("MainInfo")
 
-    --[[
     ---! 启动用户信息的数据库服务
-    local service = snax.uniqueservice("DBService")
-    ---! 专门监听 数据库DB_CGGame的TUser表
-    service.req.setHandler("TUserHandler");
-    --]]
+    skynet.newservice("DBService")
+
 
     ---! 完成初始化，退出本服务
     skynet.exit()
 end)
+
