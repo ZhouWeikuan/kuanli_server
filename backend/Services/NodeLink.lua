@@ -12,9 +12,10 @@ local clsHelper = require "ClusterHelper"
 ---! 信息
 local nodeInfo = nil
 local theMainApp = nil
+local thisInfo
 
 ---! 保持远程节点，对方断线时切换
-local function holdMainServer(thisInfo, list)
+local function holdMainServer(list)
     if theMainApp then
         return
     end
@@ -35,7 +36,7 @@ local function holdMainServer(thisInfo, list)
 
                 theMainApp = nil
                 skynet.call(nodeInfo, "lua", "updateConfig", nil, clsHelper.kMainNode)
-                holdMainServer(thisInfo, list)
+                holdMainServer(list)
             end)
             return
         end
@@ -48,7 +49,7 @@ local function registerSelf ()
         return
     end
 
-    local thisInfo = skynet.call(nodeInfo, "lua", "getRegisterInfo")
+    thisInfo = skynet.call(nodeInfo, "lua", "getRegisterInfo")
     skynet.error("thisInfo.kind = ", thisInfo.kind)
     if thisInfo.kind == clsHelper.kMainServer then
         skynet.error("MainServer should not register itself", thisInfo.name)
@@ -56,7 +57,7 @@ local function registerSelf ()
     end
 
     local list = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kMainServer)
-    holdMainServer(thisInfo, list)
+    holdMainServer(list)
 end
 
 ---! 通讯
@@ -66,6 +67,15 @@ local CMD = {}
 function CMD.askReg ()
     skynet.fork(registerSelf)
     return 0
+end
+
+---! 通知在线人数更新
+function CMD.heartBeat (num)
+    if not theMainApp then
+        return 0
+    end
+    local mainAddr = clsHelper.cluster_addr(theMainApp, clsHelper.kMainInfo)
+    return pcall(cluster.send, theMainApp, mainAddr, "heartBeat", thisInfo.kind, thisInfo.name, num)
 end
 
 ---! 收到通知，结束本服务

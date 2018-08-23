@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package CGGame;
+
+/// @brief the main protocol message, we should parse out protoCode first,
+///             and then if possible, use other Message to parse out protoBody
+message ProtoInfo {
+    optional int32  mainType    = 1;
+    optional int32  subType     = 2;
+    optional bytes  msgBody     = 3;
+}
+
+

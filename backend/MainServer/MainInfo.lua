@@ -182,6 +182,16 @@ function CMD.regNode (node)
     return 0
 end
 
+---! 心跳，更新人数
+function CMD.heartBeat (kind, name, num)
+    local list = servers[kind] or {}
+    local one = list[name]
+    if not one then
+        return 0
+    end
+    one.numPlayers = num
+end
+
 ---! 记住游戏玩家所做的服务节点
 local appGameUserDelayTime = 10 * 60
 local function get_path_hall_user (uid, gameId)

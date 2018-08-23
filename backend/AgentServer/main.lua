@@ -38,12 +38,12 @@ skynet.start(function()
     skynet.uniqueservice("NodeStat")
 
     ---! 启动AgentWatch
-    skynet.uniqueservice("AgentWatchDog")
+    skynet.uniqueservice("WatchDog")
 
     ---! 启动 NodeLink 服务
     skynet.newservice("NodeLink")
 
-    --启动好了，没事做就退出
+    ---! 启动好了，没事做就退出
     skynet.exit()
 end)
 
