@@ -70,6 +70,14 @@ class.handle_basic = function (self, args)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
+        self.multiInfo = self.multiInfo or {}
+        local info = packetHelper:decodeMsg("CGGame.MultiBody", args.msgBody)
+        self.multiInfo[info.curIndex] = info.msgBody
+        if info.curIndex == info.maxIndex then
+            local data = table.concat(self.multiInfo, "")
+            self.multiInfo = nil
+            self:command_handler(data)
+        end
     else
         skynet.error("unhandled basic", args.mainType, args.subType, args.msgBody)
     end

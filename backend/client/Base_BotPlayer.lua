@@ -5,6 +5,7 @@ local protoTypes = require("ProtoTypes")
 local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 
 local PriorityQueue = require "PriorityQueue"
+local Queue         = require "Queue"
 
 ---! create the class metatable
 local class = {mt = {}}
@@ -29,7 +30,8 @@ class.create = function (delegate, authInfo, handler)
     self.handler = handler or self
 
     self.recv_list = PriorityQueue.create(function (obj) return obj end, function (obj) return obj.timeout end, "[RECVIDX]")
-    self.send_list = PriorityQueue.create(function (obj) return obj end, function (obj) return obj.timeout end, "[SENDIDX]")
+    self.delay_list = PriorityQueue.create(function (obj) return obj end, function (obj) return obj.timeout end, "[SENDIDX]")
+    self.direct_list = Queue.create()
 
     return self
 end
@@ -62,7 +64,12 @@ class.sendPacket = function (self, packet, delay)
     obj.timeout = skynet.time() + delay
     obj.packet  = packet
 
-    self.send_list:addObject(obj)
+    if delay <= 0.00001 then
+        self.direct_list:pushBack(obj)
+        return
+    end
+
+    self.delay_list:addObject(obj)
 end
 
 class.tickFrame = function (self, dt)
@@ -83,9 +90,9 @@ class.tickFrame = function (self, dt)
         obj = self.recv_list:top()
     end
 
-    obj = self.send_list:top()
-    while obj and obj.timeout <= now do
-        obj = self.send_list:pop()
+    obj = self.direct_list:front()
+    while obj do
+        obj = self.direct_list:popFront()
 
         xpcall(function()
             self.delegate:command_handler(obj.packet)
@@ -95,7 +102,23 @@ class.tickFrame = function (self, dt)
             print(debug.traceback())
         end)
 
-        obj = self.send_list:top()
+        obj = self.direct_list:front()
+    end
+
+
+    obj = self.delay_list:top()
+    while obj and obj.timeout <= now do
+        obj = self.delay_list:pop()
+
+        xpcall(function()
+            self.delegate:command_handler(obj.packet)
+        end,
+        function(err)
+            print(err)
+            print(debug.traceback())
+        end)
+
+        obj = self.delay_list:top()
     end
 end
 
@@ -144,6 +167,14 @@ class.handle_basic = function (self, args)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
+        self.multiInfo = self.multiInfo or {}
+        local info = packetHelper:decodeMsg("CGGame.MultiBody", args.msgBody)
+        self.multiInfo[info.curIndex] = info.msgBody
+        if info.curIndex == info.maxIndex then
+            local data = table.concat(self.multiInfo, "")
+            self.multiInfo = nil
+            self:handlePacket(data)
+        end
     else
         skynet.error("unhandled basic", args.mainType, args.subType, args.msgBody)
     end
