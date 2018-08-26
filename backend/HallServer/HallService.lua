@@ -22,6 +22,26 @@ function CMD.createInterface (conf)
     return ""
 end
 
+function CMD.JoinAgent ()
+    return 0
+end
+
+function CMD.QuitAgent ()
+    return 0
+end
+
+function CMD.GameData ()
+    return 0
+end
+
+function CMD.MainData ()
+    return 0
+end
+
+function CMD.getStat ()
+    return 0
+end
+
 skynet.start(function()
     ---! 注册skynet消息服务
     skynet.dispatch("lua", function(_,_, cmd, ...)

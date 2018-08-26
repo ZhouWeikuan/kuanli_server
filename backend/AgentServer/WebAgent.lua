@@ -13,9 +13,9 @@ local taskHelper = require "TaskHelper"
 local AgentUtils = require "AgentUtils"
 
 ---!
-local userInfo  = {}
 local agentInfo = {}
 local agentUtil = nil
+local client_sock = nil
 
 local handler = {}
 function handler.on_open(ws)
@@ -54,18 +54,18 @@ local CMD = {}
 
 ---! @brief start service
 function CMD.start (info, header)
-    if userInfo.client_sock then
+    if client_sock then
         return
     end
 
     local id = info.client_fd
     socket.start(id)
     pcall(function ()
-        userInfo.client_sock = websocket.new(id, header, handler)
+        client_sock = websocket.new(id, header, handler)
     end)
-    if userInfo.client_sock then
+    if client_sock then
         skynet.fork(function ()
-            userInfo.client_sock:start()
+            client_sock:start()
         end)
     end
 
@@ -91,8 +91,8 @@ function CMD.start (info, header)
 end
 
 function CMD.sendProtocolPacket (packet)
-    if userInfo.client_sock then
-        userInfo.client_sock:send_binary(packet)
+    if client_sock then
+        client_sock:send_binary(packet)
     end
 end
 
@@ -101,9 +101,9 @@ end
 function CMD.disconnect ()
     agentUtil:reqQuit(agentInfo.client_fd)
 
-    if userInfo.client_sock then
-        userInfo.client_sock:close()
-        userInfo.client_sock = nil
+    if client_sock then
+        client_sock:close()
+        client_sock = nil
     end
 
     skynet.exit()
@@ -124,7 +124,7 @@ skynet.start(function()
         end
     end)
 
-    userInfo.sign = os.time()
-    agentUtil = AgentUtils.create(agentInfo, userInfo, CMD, utilCallBack)
+    agentInfo.agentSign = os.time()
+    agentUtil = AgentUtils.create(agentInfo, CMD, utilCallBack)
 end)
 

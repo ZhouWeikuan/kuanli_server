@@ -5,6 +5,7 @@
 
 ---! 依赖库
 local skynet = require "skynet"
+local socket = require "skynet.socket"
 
 ---! 帮助库
 local clsHelper = require "ClusterHelper"
@@ -13,7 +14,6 @@ local taskHelper = require "TaskHelper"
 local AgentUtils = require "AgentUtils"
 
 ---! 全局变量
-local userInfo  = {}
 local agentInfo = {}
 local agentUtil = nil
 
@@ -28,7 +28,6 @@ function CMD.start (info)
     skynet.error("CMD start called on fd ", agentInfo.client_fd)
 
     skynet.call(agentInfo.gate, "lua", "forward", agentInfo.client_fd)
-    userInfo.client_sock = agentInfo.client_fd
 
     agentInfo.last_update = skynet.time()
     skynet.fork(function()
@@ -71,6 +70,8 @@ skynet.register_protocol {
 		return skynet.tostring(msg,sz)
 	end,
 	dispatch = function (session, address, text)
+        skynet.ignoreret()
+
         agentInfo.last_update = skynet.time()
 
         local worker = function ()
@@ -101,7 +102,7 @@ skynet.start(function()
         end
     end)
 
-    userInfo.sign = os.time()
-    agentUtil = AgentUtils.create(agentInfo, userInfo, CMD, utilCallBack)
+    agentInfo.agentSign = os.time()
+    agentUtil = AgentUtils.create(agentInfo, CMD, utilCallBack)
 end)
 

@@ -9,17 +9,19 @@ local skynet    = require "skynet"
 ---! 帮助库
 local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 
+local protoTypes    = require "ProtoTypes"
+
 ---! AgentUtils 模块定义
 local class = {mt = {}}
 class.mt.__index = class
 
 ---! 创建AgentUtils实例
-local function create (agentInfo, userInfo, cmd, callback)
+local function create (agentInfo, cmd, callback)
     local self = {}
     setmetatable(self, class.mt)
 
+    self.authInfo   = {}
     self.agentInfo  = agentInfo
-    self.userInfo   = userInfo
     self.cmd        = cmd
     self.callback   = callback
 
@@ -27,7 +29,19 @@ local function create (agentInfo, userInfo, cmd, callback)
 end
 class.create = create
 
+---! send options
 class.sendHeartBeat = function (self)
+    local info = {
+        fromType = protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_SERVER,
+        timestamp = skynet.time()
+    }
+    local data = packetHelper:encodeMsg("CGGame.HeartBeat", info)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
+                protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT, data)
+    self.cmd.sendProtocolPacket(packet)
+end
+
+class.reqQuit = function (self, fd)
 end
 
 class.kickMe = function (self, fd)
@@ -35,29 +49,74 @@ class.kickMe = function (self, fd)
     pcall(skynet.send, agentInfo.watchdog, "lua", "closeAgent", fd)
 end
 
-class.command_handler = function (self, text)
+---! handle options
+class.handle_basic = function (self, args)
+    if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT then
+        local info = packetHelper:decodeMsg("CGGame.HeartBeat", args.msgBody)
+        if info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_CLIENT then
+            local packet = packetHelper:makeProtoData(args.mainType, args.subType, args.msgBody)
+            self.cmd.sendProtocolPacket(packet)
+            -- skynet.error("client heart beat")
+
+        elseif info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_SERVER then
+            local now = skynet.time()
+            info.timestamp = info.timestamp or now
+            self.agentInfo.speed_diff = (now - info.timestamp) * 0.5
+            skynet.error("server speed diff is ", now, info.timestamp, self.agentInfo.speed_diff)
+        else
+            skynet.error("unknown heart beat fromType", info.fromType, " timestamp: ", info.timestamp)
+        end
+
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
+    else
+        skynet.error("unhandled basic", args.mainType, args.subType, args.msgBody)
+    end
 end
 
-class.reqQuit = function (self, fd)
+class.handle_auth = function (self, args)
+    skynet.error("unhandled auth", args.mainType, args.subType, args.msgBody)
+end
+
+class.handle_hall = function (self, args)
+    skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
+end
+
+class.handle_club = function (self, args)
+    skynet.error("unhandled club", args.mainType, args.subType, args.msgBody)
+end
+
+class.handle_room = function (self, args)
+    skynet.error("unhandled room", args.mainType, args.subType, args.msgBody)
+end
+
+class.handle_game = function (self, args)
+    skynet.error("unhandled game", args.mainType, args.subType, args.msgBody)
+end
+
+---! check for input command
+class.command_handler = function (self, text)
+    local args = packetHelper:decodeMsg("CGGame.ProtoInfo", text)
+    args.subType = args.subType or 0
+    if args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_BASIC then
+        self:handle_basic(args)
+    elseif args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_AUTH then
+        self:handle_auth(args)
+    elseif args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_HALL then
+        self:handle_hall(args)
+    elseif args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_CLUB then
+        self:handle_club(args)
+    elseif args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_ROOM then
+        self:handle_room(args)
+    elseif args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_GAME then
+        self:handle_game(args)
+    else
+        skynet.error("Unknown mainType", args.mainType, args.subType, args.msgBody)
+    end
 end
 
 --[[
-local function sendHeartBeat()
-    -- skynet.error("send heart beat from server")
-    local info = {
-        timestamp = skynet.time()
-    }
-    local packet = protobuf.encode("CGGame.HeartBeatInfo", info)
-
-    local msg = {}
-    msg.mainType = protoTypes.CGGAME_PROTO_TYPE_HEARTBEAT
-    msg.subType  = protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT_SERVER
-    msg.msgBody  = packet
-
-    packet = protobuf.encode("CGGame.ProtoInfo", msg);
-    CMD.sendProtocolPacket (packet)
-end
-
 
 ----- mist functions -----
 local function action_to_watchdog(act, cmd, subcmd, ...)
@@ -282,19 +341,6 @@ local function command_handler(text)
     elseif args.mainType == protoTypes.CGGAME_PROTO_TYPE_NOTICE then
         REQ.notice(args)
     elseif args.mainType == protoTypes.CGGAME_PROTO_TYPE_HEARTBEAT then
-        if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT_CLIENT then
-            msg.mainType = protoTypes.CGGAME_PROTO_TYPE_HEARTBEAT
-            msg.subType  = protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT_CLIENT
-            msg.msgBody  = args.msgBody
-        elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT_SERVER then
-            local now = skynet.time()
-            local info = protobuf.decode("CGGame.HeartBeatInfo", args.msgBody)
-            info.timestamp = info.timestamp or now
-            local delta = (now - info.timestamp) * 0.5
-            -- skynet.error("speed diff is ", now, info.timestamp, delta)
-        elseif args.subType ~= 0 then
-            skynet.error("unknown heart beat subType", args.subType, " data: ", args.msgBody)
-        end
     elseif args.mainType == protoTypes.CGGAME_PROTO_TYPE_BUYCHIP or args.mainType == protoTypes.CGGAME_PROTO_TYPE_BUYSCORE then
         if REQ.main_data(args) ~= "" then
             msg = args

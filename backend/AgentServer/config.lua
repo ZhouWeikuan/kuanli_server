@@ -34,7 +34,7 @@ logger      = _root .. "/logs/" .. app_name .. ".log"
 bootstrap   = "snlua bootstrap"
 
 ---!  snlua用到的参数
-lua_path    = _skynet.."lualib/?.lua;"..app_root.."?.lua;".._root .."Algos/?.lua;".._root.."Helpers/?.lua"
+lua_path    = _skynet.."lualib/?.lua;"..app_root.."?.lua;".._root .."Algos/?.lua;".._root.."Helpers/?.lua;".._root.."Services/?.lua"
 lua_cpath   = _skynet.."luaclib/?.so;"..app_root.."cservices/?.so"
 luaservice  = _skynet.."service/?.lua;".. app_root .. "?.lua;" .._root.."Services/?.lua;".._root.."managers/?.lua"
 lualoader   = _skynet.."lualib/loader.lua"

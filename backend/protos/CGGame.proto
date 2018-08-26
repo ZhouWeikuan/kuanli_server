@@ -10,4 +10,46 @@ message ProtoInfo {
     optional bytes  msgBody     = 3;
 }
 
+/// protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE     =   1
+message MultiBody {
+    optional int32  curIndex  = 1;
+    optional int32  maxIndex  = 2;
+    optional bytes  msgBody   = 3;
+}
+
+/// protoTypes.CGGAME_PROTO_SUBTYPE_ACL          =   2
+message AclInfo {
+    optional int32 aclType = 1;
+    optional bytes aclMsg  = 2;
+}
+
+/// protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT    =   3
+message HeartBeat {
+    optional int32  fromType    = 1;
+    optional double timestamp   = 2;
+}
+
+/// protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST    =   4
+message AgentList {
+    message OneAgent {
+        optional bytes  name        = 1;
+        optional bytes  addr        = 2;
+        optional int32  port        = 3;
+        optional int32  numPlayers  = 4;
+    }
+
+    optional int32 gameId       = 1;
+    optional int32 hallCount    = 2;
+    repeated OneAgent agentList = 3;
+}
+
+message AuthInfo {
+    optional bytes username     = 1;
+    optional bytes password     = 2;
+    optional bytes challenge    = 3;
+    optional bytes clientkey    = 4;
+    optional bytes serverkey    = 5;
+    optional bytes hmac         = 6;
+    optional bytes etoken       = 7;
+}
 

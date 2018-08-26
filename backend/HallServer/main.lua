@@ -12,6 +12,26 @@ local cluster   = require "skynet.cluster"
 local packetHelper  = require "PacketHelper"
 local clsHelper     = require "ClusterHelper"
 
+local function addBotAgents (config)
+    local num = 53
+    local players = {}
+    for i=1,num do
+        players[i] = i
+    end
+    for i=1,num do
+        local t = math.random(1, num)
+        players[i], players[t] = players[t], players[i]
+    end
+
+    local bn = config.BotNum or 0
+    print("load ", bn, "client bots")
+    for i=1, bn do
+        local bot = skynet.newservice("BotAgent")
+        local uid = string.format("uid%05d", 1000 + players[i])
+        skynet.call(bot, "lua", "start", config.BotName, uid, config.TickInterval)
+    end
+end
+
 --! @brief start services
 skynet.start(function()
     ---! 初始化随机数
@@ -51,6 +71,7 @@ skynet.start(function()
         local config = packetHelper.load_config(conf)
         skynet.call(srv, "lua", "updateConfig", config, clsHelper.kHallConfig)
         skynet.call(hall, "lua", "createInterface", config)
+        addBotAgents(config)
     end
 
     ---! 启动 NodeLink 服务

@@ -73,7 +73,7 @@ end
 ---! 对方节点断线
 local function disconnect_kind_server (kind, name)
     local list = servers[kind] or {}
-    list.name = nil
+    list[name] = nil
 end
 
 ---! 维持与别的节点的联系
