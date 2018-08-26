@@ -5,6 +5,7 @@
 
 local class = {}
 
+--- main proto types
 class.CGGAME_PROTO_MAINTYPE_BASIC   = 1                         -- basic proto type
     class.CGGAME_PROTO_SUBTYPE_MULTIPLE     =   1               -- mulitiple message
     class.CGGAME_PROTO_SUBTYPE_ACL          =   2               -- acl info
@@ -23,8 +24,7 @@ class.CGGAME_PROTO_MAINTYPE_AUTH    = 10                        -- auth proto ty
 class.CGGAME_PROTO_MAINTYPE_HALL    = 20
     class.CGGAME_PROTO_SUBTYPE_HALLQUIT     =   1
     class.CGGAME_PROTO_SUBTYPE_HALLJOIN     =   2
-    class.CGGAME_PROTO_SUBTYPE_HALLDATA     =   3
-    class.CGGAME_PROTO_SUBTYPE_NOTICE       =   4
+    class.CGGAME_PROTO_SUBTYPE_NOTICE       =   3
 
 class.CGGAME_PROTO_MAINTYPE_CLUB    = 30
 
@@ -32,7 +32,7 @@ class.CGGAME_PROTO_MAINTYPE_ROOM    = 40
 
 class.CGGAME_PROTO_MAINTYPE_GAME    = 50
     class.CGGAME_PROTO_SUBTYPE_GAMEJOIN     =   1
-    class.CGGAME_PROTO_SUBTYPE_GAMEDATA     =   2
+    class.CGGAME_PROTO_SUBTYPE_GAMETRACE    =   2
 
 return class
 

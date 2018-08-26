@@ -116,7 +116,7 @@ class.checkAllLoginServers = function (self, doCheck)
     return best
 end
 
-local function getOldLoginList (self, refreshLogin, checkForeign)
+class.getOldLoginList = function (self, refreshLogin, checkForeign)
 	self.message = "msgParsingOldLoginServers"
 
 	local data = Settings.getItem(Settings.keyLoginList, "")
@@ -145,7 +145,6 @@ local function getOldLoginList (self, refreshLogin, checkForeign)
     	self.agentList[r] = one
     end
 end
-class.getOldLoginList = getOldLoginList
 
 class.sendHeartBeat = function (self)
     local info = {}
@@ -159,7 +158,7 @@ class.sendHeartBeat = function (self)
     -- print("sendHeartBeat", self.remotesocket)
 end
 
-class.tryLogin = function (self)
+class.tryConnect = function (self)
 	self.message = "msgTryLoginServers"
 
 	for k, v in pairs(self.agentList) do
@@ -179,7 +178,7 @@ class.tryLogin = function (self)
 	return nil
 end
 
-local function getLoginList (self)
+class.getAgentList = function (self)
     local info = {
         gameId = self.const.GAMEID,
     }
@@ -188,69 +187,8 @@ local function getLoginList (self)
         protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
 	self.remotesocket:sendPacket(packet)
 end
-class.getLoginList = getLoginList
 
-local function parseLoginList (self, packet)
-    local m = packetHelper:decodeMsg("CGGame.ProtoInfo", packet)
-    local p = packetHelper:decodeMsg("CGGame.AgentList", m.msgBody)
-
-    local list = {}
-	for k, v in ipairs(p.agentList or {}) do
-        table.insert(list, string.format("%s:%d", v.addr, v.port))
-	end
-    local str = table.concat(list, ",")
-
-	Settings.setItem(Settings.keyLoginList, str)
-    return p.hallCount
-end
-class.parseLoginList = parseLoginList
-
---[[
-local function getHallList (self, gameMode)
-    local packet = self:hallPacket(gameMode, protoTypes.CGGAME_PROTO_SUBTYPE_LIST_DIRECT)
-    self.remotesocket:sendPacket(packet)
-end
-class.getHallList = getHallList
-
-local function parseHallList (self, packet, gameMode)
-    if not packet then
-        packet = class.raw_hall_list_packet or ""
-    else
-        class.raw_hall_list_packet = packet
-    end
-
-    local p = packetHelper:decodeMsg("CGGame.ProtoInfo", packet)
-    p = packetHelper:decodeMsg("CGGame.InfoList", p.msgBody)
-
-    gameMode = gameMode or 0
-
-	local login = nil
-	local list = p.server_list
-    self.hallCount = 0
-	for k, v in ipairs(list) do
-        local myMode = v.gameInfo and v.gameInfo.gameMode or 0
-        if gameMode == 0 or gameMode == myMode then
-            if not login then
-                login = string.format("%s:%d", v.addr, v.port)
-            else
-                login = login .. "," .. string.format("%s:%d", v.addr, v.port)
-            end
-            self.hallCount = self.hallCount + v.numPlayers + 1
-        end
-	end
-
-    print ("hall count is ", self.hallCount)
-    if not login then
-        return
-    end
-
-	cc.UserDefault:getInstance():setIntegerForKey(keyHallCount, self.hallCount)
-	cc.UserDefault:getInstance():flush()
-end
-class.parseHallList = parseHallList
---]]
-
-local function tryHall (self, gameMode)
+class.tryHall = function (self, gameMode)
     local const = self.const
 
     local body          = {}
@@ -266,7 +204,6 @@ local function tryHall (self, gameMode)
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_TYPE_GETHALLLIST, listType, msgBody)
     return packet
 end
-class.tryHall = tryHall
 
 
 return class

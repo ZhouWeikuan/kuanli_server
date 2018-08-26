@@ -20,7 +20,7 @@ class.load = function ()
     end
     local source = f:read "*a"
     f:close()
-    data = tableHelper.decode(source)
+    data = tableHelper.decode(source) or {}
 end
 
 class.save = function ()

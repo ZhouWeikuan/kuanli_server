@@ -40,7 +40,7 @@ message AgentList {
 
     optional int32 gameId       = 1;
     optional int32 hallCount    = 2;
-    repeated OneAgent agentList = 3;
+    repeated OneAgent agents    = 3;
 }
 
 message AuthInfo {

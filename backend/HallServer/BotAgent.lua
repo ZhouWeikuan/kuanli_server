@@ -22,7 +22,6 @@ local CMD = {}
 ---! @brief start service
 function CMD.start (botName, uid, TickInterval)
     if botName and botName ~= "" and botPlayer == nil then
-        print ("Bot Name is ", botName)
         --[[
         botPlayer = packetHelper.createObject(botName, CMD, uid)
 
@@ -36,7 +35,6 @@ function CMD.start (botName, uid, TickInterval)
 
         pcall(skynet.call, service, "lua", JoinAgent, agentInfo.client_fd, agentInfo)
         --]]
-        print("join agent")
     end
 
     return 0

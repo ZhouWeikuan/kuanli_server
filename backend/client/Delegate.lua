@@ -27,7 +27,7 @@ class.create = function ()
     self.lastUpdate = skynet.time()
     self.login = LoginHelper.create(const)
 
-    local agent = BotPlayer.create(self, self.authInfo, self)
+    local agent = BotPlayer.create(self, self.authInfo)
     self.agent  = agent
 
     return self
@@ -84,15 +84,14 @@ class.stage_login = function (self)
         print("no agent list found")
         return
     end
-    login:tryLogin()
-    login:getLoginList()
+    login:tryConnect()
+    login:getAgentList()
 
     while not self.hallCount do
+        print("wait for hallCount")
         WaitList.pause()
     end
-    -- local p = login:getThePacket()
-    -- local ret = login:parseLoginList(p)
-    -- print("parseLoginList returns", ret)
+    print("get hallCount", self.hallCount)
 
     -- local packet = login:tryHall(Settings.getItem(Settings.keyGameMode, 0))
     -- agent:sendPacket(packet)

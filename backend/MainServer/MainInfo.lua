@@ -73,7 +73,16 @@ end
 ---! 对方节点断线
 local function disconnect_kind_server (kind, name)
     local list = servers[kind] or {}
+    local one = list[name]
+
+    --! remove from server kind reference
     list[name] = nil
+
+    --! remove from game id reference
+    if one.gameId then
+        list = servers[one.gameId] or {}
+        list[name] = nil
+    end
 end
 
 ---! 维持与别的节点的联系
@@ -143,6 +152,29 @@ function CMD.askAll ()
     end
 end
 
+function CMD.getAgentList (gameId)
+    local ret = {}
+    ret.gameId = gameId
+    ret.hallCount = 0
+    local list = servers[gameId] or {}
+    for k, v in pairs(list) do
+        ret.hallCount = ret.hallCount + 1
+    end
+
+    ret.agents = {}
+    list = servers[clsHelper.kAgentServer] or {}
+    for k, v in pairs(list) do
+        local one = {}
+        one.name = v.clusterName
+        one.addr = v.address
+        one.port = v.port
+        one.numPlayers = v.numPlayers
+        table.insert(ret.agents, one)
+    end
+
+    return ret
+end
+
 ---! node info to register
 function CMD.regNode (node)
     local kind = node.kind
@@ -158,8 +190,6 @@ function CMD.regNode (node)
     one.numPlayers    = node.numPlayers
     one.lastUpdate    = os.time()
 
-    skynet.error(kind, "regNode", node.name)
-
     local config = node.conf
     if config then
         one.gameId         = tonumber(config.GameId) or 0
@@ -171,12 +201,19 @@ function CMD.regNode (node)
         one.highPlayers    = config.High
     end
 
+    -- add into server kind list
     list[node.name] = one
+
+    if one.gameId then
+        -- add into game id list
+        list = servers[one.gameId] or {}
+        list[node.name] = one
+        servers[one.gameId] = list
+    end
 
     skynet.fork(function()
         hold_kind_server(kind, node.name)
     end)
-
     skynet.fork(checkBreak)
 
     return 0

@@ -1,5 +1,5 @@
 
-©
+¦
 CGGame.protoCGGame"?
 	ProtoInfo
 mainType (
@@ -14,11 +14,11 @@
 aclMsg ("0
 	HeartBeat
 fromType (
-	timestamp ("§
+	timestamp ("¤
 	AgentList
 gameId (
-	hallCount (-
-	agentList (2.CGGame.AgentList.OneAgentH
+	hallCount (*
+agents (2.CGGame.AgentList.OneAgentH
 OneAgent
 name (
 addr (

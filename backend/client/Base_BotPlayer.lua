@@ -165,7 +165,22 @@ class.handle_basic = function (self, args)
         end
 
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
+        local p = packetHelper:decodeMsg("CGGame.AgentList", args.msgBody)
+
+        local list = {}
+        for k, v in ipairs(p.agents or {}) do
+            table.insert(list, string.format("%s:%d", v.addr, v.port))
+        end
+        local str = table.concat(list, ",")
+
+        local Settings = require "Settings"
+        if Settings then
+            Settings.setItem(Settings.keyAgentList, str)
+        end
+        self.delegate.hallCount = p.hallCount
+
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
+        self.handler:handleACL(args.msgBody)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
         self.multiInfo = self.multiInfo or {}
         local info = packetHelper:decodeMsg("CGGame.MultiBody", args.msgBody)
@@ -195,6 +210,11 @@ end
 class.handle_game = function (self, msg)
 end
 
+---------------------------- handler's handle function ------------------
+class.handleACL = function (self, data)
+    local aclInfo = packetHelper:decodeMsg("CGGame.AclInfo", data)
+    print("ACL type:", aclInfo.aclType, "msg:", aclInfo.aclMsg)
+end
 
 return class
 

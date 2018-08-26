@@ -5,11 +5,22 @@
 
 ---! 依赖库
 local skynet    = require "skynet"
+local cluster   = require "skynet.cluster"
 
 ---! 帮助库
+local clsHelper     = require "ClusterHelper"
 local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 
 local protoTypes    = require "ProtoTypes"
+
+---! const
+local API_LEVEL_NONE = 0
+local API_LEVEL_AUTH = 1
+local API_LEVEL_HALL = 2
+local API_LEVEL_GAME = 3
+
+---! variables
+local nodeInfo
 
 ---! AgentUtils 模块定义
 local class = {mt = {}}
@@ -20,10 +31,13 @@ local function create (agentInfo, cmd, callback)
     local self = {}
     setmetatable(self, class.mt)
 
+    self.apiLevel   = API_LEVEL_NONE
     self.authInfo   = {}
     self.agentInfo  = agentInfo
     self.cmd        = cmd
     self.callback   = callback
+
+    nodeInfo = skynet.uniqueservice("NodeInfo")
 
     return self
 end
@@ -62,13 +76,30 @@ class.handle_basic = function (self, args)
             local now = skynet.time()
             info.timestamp = info.timestamp or now
             self.agentInfo.speed_diff = (now - info.timestamp) * 0.5
-            skynet.error("server speed diff is ", now, info.timestamp, self.agentInfo.speed_diff)
+            -- skynet.error("server speed diff is ", now, info.timestamp, self.agentInfo.speed_diff)
         else
             skynet.error("unknown heart beat fromType", info.fromType, " timestamp: ", info.timestamp)
         end
 
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
+        local agentList = packetHelper:decodeMsg("CGGame.AgentList", args.msgBody)
+        local appName = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kMainNode)
+        if not appName then
+            return
+        end
+
+        local addr = clsHelper.cluster_addr(appName, clsHelper.kMainInfo)
+        local flg, ret = pcall(cluster.call, appName, addr, "getAgentList", agentList.gameId or 0)
+        if not flg then
+            return
+        end
+
+        local data = packetHelper:encodeMsg("CGGame.AgentList", ret)
+        local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
+                            protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
+        self.cmd.sendProtocolPacket(packet)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
+        skynet.error("Server should not receive ACL:", args.mainType, args.subType, args.msgBody)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
         self.multiInfo = self.multiInfo or {}
         local info = packetHelper:decodeMsg("CGGame.MultiBody", args.msgBody)
