@@ -63,7 +63,7 @@ local function printDeepTable (_origin_info, curDepth,  _space_count, _printed_i
                 end
             else
                 local str = pre .. "    "
-                str = str .. k .. " = " .. tostring(v)
+                str = str .. tostring(k) .. " = " .. tostring(v)
                 class.cclog(str)
             end
         end

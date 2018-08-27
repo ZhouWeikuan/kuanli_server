@@ -38,11 +38,16 @@ message AgentList {
         optional int32  numPlayers  = 4;
     }
 
-    optional int32 gameId       = 1;
-    optional int32 hallCount    = 2;
-    repeated OneAgent agents    = 3;
+    repeated OneAgent agents    = 1;
 }
 
+/// protoTypes.CGGAME_PROTO_SUBTYPE_NOTICE       =   5
+message NoticeInfo {
+    optional int32 noticeType   = 1;   // 0, text, 1 app voice, amr-wb, 2,
+    optional bytes noticeText   = 2;
+}
+
+/// protoTypes.CGGAME_PROTO_MAINTYPE_AUTH    = 10
 message AuthInfo {
     optional bytes username     = 1;
     optional bytes password     = 2;
@@ -51,5 +56,6 @@ message AuthInfo {
     optional bytes serverkey    = 5;
     optional bytes hmac         = 6;
     optional bytes etoken       = 7;
+    optional int32 authIndex    = 8;
 }
 

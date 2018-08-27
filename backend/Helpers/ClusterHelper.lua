@@ -178,6 +178,17 @@ class.cluster_action = function (app, service, handler)
     handler(proxy)
 end
 
+class.getMainAppAddr = function (service)
+    local nodeInfo = skynet.uniqueservice("NodeInfo")
+    local appName = skynet.call(nodeInfo, "lua", "getConfig", class.kMainNode)
+    if not appName then
+        return
+    end
+
+    local addr = class.cluster_addr(appName, service)
+    return appName, addr
+end
+
 
 return class
 

@@ -1,5 +1,5 @@
 
-¶
+Ã
 CGGame.protoCGGame"?
 	ProtoInfo
 mainType (
@@ -14,17 +14,21 @@
 aclMsg ("0
 	HeartBeat
 fromType (
-	timestamp ("§
-	AgentList
-gameId (
-	hallCount (*
-agents (2.CGGame.AgentList.OneAgentH
+	timestamp ("Å
+	AgentList*
+agents (2.CGGame.AgentList.OneAgentH
 OneAgent
 name (
 addr (
 port (
 
-numPlayers ("Ö
+numPlayers ("4
+
+NoticeInfo
+
+noticeType (
+
+noticeText ("ò
 AuthInfo
 username (
 password (
@@ -32,4 +36,5 @@ numPlayers ("Ö
 	clientkey (
 	serverkey (
 hmac (
-etoken (
+etoken (
+	authIndex (

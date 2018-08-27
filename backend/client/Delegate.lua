@@ -5,6 +5,8 @@ local LoginHelper = require "LoginHelper"
 local Settings = require "Settings"
 
 local BotPlayer = require "Base_BotPlayer"
+
+local protoTypes = require "ProtoTypes"
 local const = require "Const_Landlord"
 
 ---! create the class metatable
@@ -17,12 +19,7 @@ class.create = function ()
     local self = {}
     setmetatable(self, class.mt)
 
-    self.authInfo = {
-        FUniqueID = "G:1293841824",
-        FPassword = "apple",
-        FNickName = "test",
-        FAvatarUrl = "",
-    }
+    self.authInfo = Settings.getAuthInfo()
 
     self.lastUpdate = skynet.time()
     self.login = LoginHelper.create(const)
@@ -87,11 +84,13 @@ class.stage_login = function (self)
     login:tryConnect()
     login:getAgentList()
 
-    while not self.hallCount do
-        print("wait for hallCount")
+    self.agent:sendAuthOptions(protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME)
+
+    while not self.authOK do
+        print("wait for authOK")
         WaitList.pause()
     end
-    print("get hallCount", self.hallCount)
+    print("auth OK!")
 
     -- local packet = login:tryHall(Settings.getItem(Settings.keyGameMode, 0))
     -- agent:sendPacket(packet)

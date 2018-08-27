@@ -1,7 +1,10 @@
 local skynet = require "skynet"
+local crypt = require "skynet.crypt"
 
 local Settings = require "Settings"
 local WaitList = require "WaitList"
+
+local strHelper     = require "StringHelper"
 local packetHelper = require "PacketHelper"
 
 local RemoteSocket = require "RemoteSocket"
@@ -34,7 +37,7 @@ class.createFromLayer = function (delegate, botName, authInfo, const)
     delegate.login = login
 
     login:getOldLoginList()
-    login:tryLogin()
+    login:tryConnect()
 
     if login.remotesocket then
         local BotPlayer = require(botName)
@@ -54,7 +57,7 @@ class.tickCheck = function (self, delegate)
     end
 
     if not self.remotesocket then
-        self:tryLogin()
+        self:tryConnect()
 
         if not self.remotesocket then
             print("请确定网络正常后再重试，或联系我们客服QQ群: 543221539", "网络出错")
@@ -148,7 +151,7 @@ end
 
 class.sendHeartBeat = function (self)
     local info = {}
-    info.fromType  = protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_CLIENT
+    info.fromType  = protoTypes.CGGAME_PROTO_HEARTBEAT_CLIENT
     info.timestamp = skynet.time()
 
     local data = packetHelper:encodeMsg("CGGame.HeartBeat", info)
@@ -179,12 +182,9 @@ class.tryConnect = function (self)
 end
 
 class.getAgentList = function (self)
-    local info = {
-        gameId = self.const.GAMEID,
-    }
-    local data = packetHelper:encodeMsg("CGGame.AgentList", info)
+    local data = packetHelper:encodeMsg("CGGame.AgentList", {})
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
-        protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
+                        protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
 	self.remotesocket:sendPacket(packet)
 end
 

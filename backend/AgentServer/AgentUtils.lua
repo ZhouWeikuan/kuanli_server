@@ -5,10 +5,12 @@
 
 ---! 依赖库
 local skynet    = require "skynet"
+local crypt     = require "skynet.crypt"
 local cluster   = require "skynet.cluster"
 
 ---! 帮助库
 local clsHelper     = require "ClusterHelper"
+local strHelper     = require "StringHelper"
 local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 
 local protoTypes    = require "ProtoTypes"
@@ -21,6 +23,39 @@ local API_LEVEL_GAME = 3
 
 ---! variables
 local nodeInfo
+
+---! global functions
+local function getAuthValue (username, info)
+    local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kDBService)
+    if not appName or not addr then
+        return
+    end
+
+    local path = string.format("auth.%s", username)
+    local flg, ret = pcall(cluster.call, appName, addr, "runCmd", "HMGET", path, "challenge", "secret", "authIndex")
+    if flg and ret then
+        info.challenge  = crypt.base64decode(ret[1] or "")
+        info.secret     = crypt.base64decode(ret[2] or "")
+        info.authIndex  = (ret[3] or 0) + 0
+    end
+end
+
+local function setAuthValue (username, info)
+    local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kDBService)
+    if not appName or not addr then
+        return
+    end
+
+    local path = string.format("auth.%s", username)
+    local flg, ret = pcall(cluster.call, appName, addr, "runCmd", "HMSET", path,
+                        "challenge", crypt.base64encode(info.challenge or ""),
+                        "secret", crypt.base64encode(info.secret or ""),
+                        "authIndex", info.authIndex or 0)
+    if flg and ret then
+        pcall(cluster.call, appName, addr, "runCmd", "EXPIRE", path, 8 * 60 * 60)
+    end
+end
+
 
 ---! AgentUtils 模块定义
 local class = {mt = {}}
@@ -37,7 +72,7 @@ local function create (agentInfo, cmd, callback)
     self.cmd        = cmd
     self.callback   = callback
 
-    nodeInfo = skynet.uniqueservice("NodeInfo")
+    nodeInfo = nodeInfo or skynet.uniqueservice("NodeInfo")
 
     return self
 end
@@ -46,12 +81,12 @@ class.create = create
 ---! send options
 class.sendHeartBeat = function (self)
     local info = {
-        fromType = protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_SERVER,
+        fromType = protoTypes.CGGAME_PROTO_HEARTBEAT_SERVER,
         timestamp = skynet.time()
     }
     local data = packetHelper:encodeMsg("CGGame.HeartBeat", info)
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
-                protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT, data)
+                        protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT, data)
     self.cmd.sendProtocolPacket(packet)
 end
 
@@ -67,12 +102,12 @@ end
 class.handle_basic = function (self, args)
     if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT then
         local info = packetHelper:decodeMsg("CGGame.HeartBeat", args.msgBody)
-        if info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_CLIENT then
+        if info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_CLIENT then
             local packet = packetHelper:makeProtoData(args.mainType, args.subType, args.msgBody)
             self.cmd.sendProtocolPacket(packet)
             -- skynet.error("client heart beat")
 
-        elseif info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_FROM_SERVER then
+        elseif info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_SERVER then
             local now = skynet.time()
             info.timestamp = info.timestamp or now
             self.agentInfo.speed_diff = (now - info.timestamp) * 0.5
@@ -82,14 +117,12 @@ class.handle_basic = function (self, args)
         end
 
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
-        local agentList = packetHelper:decodeMsg("CGGame.AgentList", args.msgBody)
-        local appName = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kMainNode)
-        if not appName then
+        local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
+        if not appName or not addr then
             return
         end
 
-        local addr = clsHelper.cluster_addr(appName, clsHelper.kMainInfo)
-        local flg, ret = pcall(cluster.call, appName, addr, "getAgentList", agentList.gameId or 0)
+        local flg, ret = pcall(cluster.call, appName, addr, "getAgentList")
         if not flg then
             return
         end
@@ -98,6 +131,8 @@ class.handle_basic = function (self, args)
         local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
                             protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
         self.cmd.sendProtocolPacket(packet)
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_NOTICE then
+        skynet.error("Server should not receive notice:", args.mainType, args.subType, args.msgBody)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
         skynet.error("Server should not receive ACL:", args.mainType, args.subType, args.msgBody)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
@@ -110,12 +145,108 @@ class.handle_basic = function (self, args)
             self:command_handler(data)
         end
     else
-        skynet.error("unhandled basic", args.mainType, args.subType, args.msgBody)
+        skynet.error("Unknown basic", args.mainType, args.subType, args.msgBody)
     end
 end
 
+class.sendChallenge = function (self)
+    self.authInfo.authIndex = 0
+    self.authInfo.challenge = crypt.randomkey()
+
+    local ret = {}
+    ret.challenge = self.authInfo.challenge
+    print("send challenge", crypt.hexencode(ret.challenge))
+    local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_AUTH,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_CHALLENGE, data)
+    self.cmd.sendProtocolPacket(packet)
+end
+
+class.failAuth = function (self, msg)
+    local info = {
+        aclType = protoTypes.CGGAME_ACL_STATUS_AUTH_FAILED,
+        aclMsg  = msg
+    }
+    local data = packetHelper:encodeMsg("CGGame.AclInfo", info)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_ACL, data)
+    self.cmd.sendProtocolPacket(packet)
+
+    self:sendChallenge()
+end
+
+class.checkAuth = function (self, info)
+    local auth = self.authInfo
+    if not strHelper.isNullKey(info.username) then
+        if strHelper.isNullKey(auth.challenge) or strHelper.isNullKey(auth.secret) then
+            getAuthValue(info.username, auth)
+        end
+    end
+
+    if strHelper.isNullKey(auth.challenge) or strHelper.isNullKey(auth.secret) then
+        self:sendChallenge()
+        return
+    end
+
+    info.authIndex = info.authIndex or 0
+    if info.authIndex ~= auth.authIndex then
+        self:failAuth("Wrong Auth Index: " .. info.authIndex)
+        return
+    end
+
+    local ret = {}
+    ret.username = info.username
+    ret.authIndex = auth.authIndex
+    local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
+    ret.hmac   = crypt.hmac64(crypt.hashkey(auth.challenge .. data), auth.secret)
+    if ret.hmac ~= info.hmac then
+        self:failAuth(string.format("Wrong HMac : %s %s", crypt.hexencode(ret.hmac), crypt.hexencode(info.hmac)))
+        return
+    end
+
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_AUTH,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_RESUME_OK, nil)
+    self.cmd.sendProtocolPacket(packet)
+
+    ret.password = crypt.desdecode(auth.secret, info.password)
+    ret.etoken   = crypt.desdecode(auth.secret, info.etoken)
+
+    auth.authIndex = auth.authIndex + 1
+    setAuthValue(info.username, auth)
+end
+
 class.handle_auth = function (self, args)
-    skynet.error("unhandled auth", args.mainType, args.subType, args.msgBody)
+    local info = packetHelper:decodeMsg("CGGame.AuthInfo", args.msgBody)
+    if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME then
+        if strHelper.isNullKey(info.hmac) or strHelper.isNullKey(info.username)
+            or strHelper.isNullKey(info.password) or strHelper.isNullKey(info.etoken) then
+
+            self:sendChallenge()
+        else
+            -- check hmac & etoken
+            self:checkAuth(info)
+        end
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_CLIENTKEY then
+        self.authInfo.clientkey = info.clientkey
+        local key = crypt.randomkey()
+        self.authInfo.serverkey = key
+
+        local ret = {}
+        ret.serverkey = crypt.dhexchange(key)
+        print("send serverkey", crypt.hexencode(key), "exchanged:", crypt.hexencode(ret.serverkey))
+        local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
+        local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_AUTH,
+                            protoTypes.CGGAME_PROTO_SUBTYPE_SERVERKEY, data)
+        self.cmd.sendProtocolPacket(packet)
+
+        self.authInfo.secret = crypt.dhsecret(self.authInfo.clientkey, key)
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_CHALLENGE
+        or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_SERVERKEY
+        or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_RESUME_OK then
+        skynet.error("Server should not receive auth:", args.mainType, args.subType, args.msgBody)
+    else
+        skynet.error("Unknown auth", args.mainType, args.subType, args.msgBody)
+    end
 end
 
 class.handle_hall = function (self, args)

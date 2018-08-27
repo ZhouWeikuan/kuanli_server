@@ -152,17 +152,10 @@ function CMD.askAll ()
     end
 end
 
-function CMD.getAgentList (gameId)
+function CMD.getAgentList ()
     local ret = {}
-    ret.gameId = gameId
-    ret.hallCount = 0
-    local list = servers[gameId] or {}
-    for k, v in pairs(list) do
-        ret.hallCount = ret.hallCount + 1
-    end
-
     ret.agents = {}
-    list = servers[clsHelper.kAgentServer] or {}
+    local list = servers[clsHelper.kAgentServer] or {}
     for k, v in pairs(list) do
         local one = {}
         one.name = v.clusterName
