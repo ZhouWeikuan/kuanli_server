@@ -191,18 +191,31 @@ end
 class.tryHall = function (self, gameMode)
     local const = self.const
 
-    local body          = {}
-    body.gameId         = const.GAMEID
-    body.gameMode       = gameMode or 0
-    body.gameVersion    = const.GAMEVERSION
-    body.lowVersion     = const.LOWVERSION and const.LOWVERSION or const.GAMEVERSION
-    --- UniqueID here
-    body.FUniqueID      = Settings.getPlayerId()
+    local info = {
+        gameId         = const.GAMEID,
+        gameMode       = gameMode or 0,
+        gameVersion    = const.GAMEVERSION,
+    }
 
-    local msgBody = packetHelper:encodeMsg("CGGame.GameInfo", body)
+    local data = packetHelper:encodeMsg("CGGame.HallInfo", info)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN, data)
+	self.remotesocket:sendPacket(packet)
+end
 
-    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_TYPE_GETHALLLIST, listType, msgBody)
-    return packet
+class.sendUserInfo = function (self, authInfo)
+    local const = self.const
+
+    local info = {
+        FUniqueID   = authInfo.username,
+        FOSType     = 'client',
+    }
+
+    print("send user info", info)
+    local data = packetHelper:encodeMsg("CGGame.UserInfo", info)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO, data)
+	self.remotesocket:sendPacket(packet)
 end
 
 

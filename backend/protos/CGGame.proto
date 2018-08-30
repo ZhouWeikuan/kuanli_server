@@ -59,3 +59,53 @@ message AuthInfo {
     optional int32 authIndex    = 8;
 }
 
+/// protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN
+message HallInfo {
+    optional int32 gameId         = 1;
+    optional int32 gameVersion    = 2;
+    optional int32 gameMode       = 3;
+}
+
+/// protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO
+message UserInfo {
+    repeated bytes fieldNames  = 1;
+
+    optional bytes FUniqueID   = 2;    // uid
+    optional bytes FPassword   = 3;
+    optional bytes FNickName   = 4;
+    optional bytes FOSType     = 5;    // iPhone, iPad, Mac, Win, Linux, Android,
+
+    optional bytes FMobile     = 6;
+    optional bytes FIDCard     = 7;
+    optional bytes FEmail      = 8;
+    optional bytes FRegTime    = 9;
+
+    optional bytes FLastIP          = 10;
+    optional bytes FLastLoginTime   = 11;
+    optional int32 FTotalTime       = 12;
+
+    optional int32 FAvatarID   = 13;        // avatar 3
+    optional bytes FAvatarUrl  = 14;        // avatar 1
+    optional bytes FAvatarData = 15;        // avatar 2
+
+    optional bytes  FLocation   = 16;
+    optional double FLongitude  = 17;
+    optional double FLatitude   = 18;
+    optional double FAltitude   = 19;
+
+    optional double FNetSpeed   = 20;
+}
+
+/// protoTypes.CGGAME_PROTO_SUBTYPE_GAMEJOIN
+message GameInfo {
+    optional int32 roomId = 1;
+    optional int32 seatId = 2;
+}
+
+message WaitUserInfo {
+    optional int32 tableStatus  = 1;
+    optional int32 timeout      = 2;
+    optional int32 waitMask     = 3;
+}
+
+

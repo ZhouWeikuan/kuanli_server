@@ -152,6 +152,7 @@ function CMD.askAll ()
     end
 end
 
+---! get agent list
 function CMD.getAgentList ()
     local ret = {}
     ret.agents = {}
@@ -166,6 +167,52 @@ function CMD.getAgentList ()
     end
 
     return ret
+end
+
+---! get hall list
+function CMD.getHallList (uid, args)
+    local prevServer = CMD.getAppGameUser(uid, args.gameId)
+
+    args.gameId     = args.gameId or 0
+    args.gameMode   = args.gameMode or nil
+    args.gameVersion = args.gameVersion or 0
+
+    local arr = {}
+    local list = servers[args.gameId]
+    if not list then
+        skynet.error("HallServer empty")
+        return arr
+    end
+
+    for _, info in pairs(list) do
+        local thumb = {}
+        thumb.app   = info.clusterName
+        thumb.pri   = info.numPlayers
+
+        if info.numPlayers > info.highPlayers then
+            info.busy = true
+        elseif info.numPlayers < info.lowPlayers then
+            info.busy = nil
+        end
+
+        if info.busy then
+            thumb.pri = thumb.pri - 1200
+        end
+
+        local versionOK = (args.gameVersion <= info.gameVersion and args.gameVersion >= info.lowVersion)
+        if args.gameMode ~= nil and (args.gameMode ~= gameMode or not versionOK) then
+            thumb.pri = thumb.pri - 1200
+        end
+
+        if info.clusterName == prevServer then
+            thumb.pri = thumb.pri + 8000
+        end
+
+        table.insert(arr, thumb)
+    end
+
+    table.sort(arr, function(a, b) return a.pri > b.pri end)
+    return arr
 end
 
 ---! node info to register

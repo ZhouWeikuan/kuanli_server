@@ -83,11 +83,6 @@ local function doNodeOff ()
         skynet.send(old, "lua", "exit")
         info[clsHelper.kNodeLink] = nil
     end
-
-    old = info[clsHelper.kMainInfo]
-    if old then
-        skynet.send(old, "lua", "nodeOff")
-    end
 end
 
 ---! 实时监控NodeLink
@@ -101,7 +96,7 @@ end
 
 ---! 收到通知，NodeLink已经上线
 function CMD.nodeOn (nodeLink)
-    CMD.nodeOff()
+    doNodeOff()
 
     info[clsHelper.kNodeLink] = nodeLink
     skynet.fork(function()
@@ -114,6 +109,17 @@ end
 ---! 获得下线通知
 function CMD.nodeOff ()
     doNodeOff()
+
+    ---! 通知 MainInfo, MainServer;
+    ---!    HallService, HallServer
+    ---!    atchDog, AgentServer
+    local poss = {clsHelper.kMainInfo, clsHelper.kHallService, clsHelper.kWatchDog}
+    for _, name in ipairs(poss) do
+        old = info[name]
+        if old then
+            skynet.send(old, "lua", "nodeOff")
+        end
+    end
 
     return ""
 end

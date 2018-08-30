@@ -92,18 +92,14 @@ class.stage_login = function (self)
     end
     print("auth OK!")
 
-    -- local packet = login:tryHall(Settings.getItem(Settings.keyGameMode, 0))
-    -- agent:sendPacket(packet)
+    login:tryHall()
+    login:sendUserInfo(self.authInfo)
 end
 
 class.stage_loop = function (self)
     while true do
-        if self.agent and self.login and self.login.remotesocket then
-            local p = self.login.remotesocket:recvPacket()
-            if p then
-                self.agent:recvPacket(p)
-            end
-        end
+        self:tickFrame(0.2)
+        skynet.sleep(20)
     end
 end
 

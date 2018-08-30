@@ -15,17 +15,11 @@ local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 
 local protoTypes    = require "ProtoTypes"
 
----! const
-local API_LEVEL_NONE = 0
-local API_LEVEL_AUTH = 1
-local API_LEVEL_HALL = 2
-local API_LEVEL_GAME = 3
-
 ---! variables
 local nodeInfo
 
 ---! global functions
-local function getAuthValue (username, info)
+local function remoteGetAuthValue (username, info)
     local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kDBService)
     if not appName or not addr then
         return
@@ -40,7 +34,7 @@ local function getAuthValue (username, info)
     end
 end
 
-local function setAuthValue (username, info)
+local function remoteSetAuthValue (username, info)
     local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kDBService)
     if not appName or not addr then
         return
@@ -61,12 +55,21 @@ end
 local class = {mt = {}}
 class.mt.__index = class
 
+---! const
+class.API_LEVEL_NONE = 0
+class.API_LEVEL_AUTH = 1
+class.API_LEVEL_HALL = 2
+class.API_LEVEL_GAME = 3
+
 ---! 创建AgentUtils实例
 local function create (agentInfo, cmd, callback)
     local self = {}
     setmetatable(self, class.mt)
 
-    self.apiLevel   = API_LEVEL_NONE
+    self.apiLevel   = class.API_LEVEL_NONE
+    self.connApp    = nil
+    self.connAddr   = nil
+
     self.authInfo   = {}
     self.agentInfo  = agentInfo
     self.cmd        = cmd
@@ -90,66 +93,80 @@ class.sendHeartBeat = function (self)
     self.cmd.sendProtocolPacket(packet)
 end
 
-class.reqQuit = function (self, fd)
-end
-
+---! close the agent
 class.kickMe = function (self, fd)
     fd = fd or self.agentInfo.client_fd
-    pcall(skynet.send, agentInfo.watchdog, "lua", "closeAgent", fd)
+    print("kick me", fd)
+    pcall(skynet.send, self.agentInfo.watchdog, "lua", "closeAgent", fd)
 end
 
----! handle options
+---! handle basic protocols, heart beat
+class.basicHeartBeat = function (self, args)
+    local info = packetHelper:decodeMsg("CGGame.HeartBeat", args.msgBody)
+    if info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_CLIENT then
+        local packet = packetHelper:makeProtoData(args.mainType, args.subType, args.msgBody)
+        self.cmd.sendProtocolPacket(packet)
+        -- skynet.error("client heart beat")
+
+    elseif info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_SERVER then
+        local now = skynet.time()
+        info.timestamp = info.timestamp or now
+        self.agentInfo.speed_diff = (now - info.timestamp) * 0.5
+        -- skynet.error("server speed diff is ", now, info.timestamp, self.agentInfo.speed_diff)
+    else
+        skynet.error("unknown heart beat fromType", info.fromType, " timestamp: ", info.timestamp)
+    end
+end
+
+---! handle basic protocols, get agent list
+class.basicAgentList = function (self, args)
+    local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
+    if not appName or not addr then
+        return
+    end
+
+    local flg, ret = pcall(cluster.call, appName, addr, "getAgentList")
+    if not flg then
+        return
+    end
+
+    local data = packetHelper:encodeMsg("CGGame.AgentList", ret)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
+    self.cmd.sendProtocolPacket(packet)
+end
+
+---! handle basic protocols, multiple packets
+class.basicMultiple = function (self, args)
+    self.multiInfo = self.multiInfo or {}
+    local info = packetHelper:decodeMsg("CGGame.MultiBody", args.msgBody)
+    self.multiInfo[info.curIndex] = info.msgBody
+    if info.curIndex == info.maxIndex then
+        local data = table.concat(self.multiInfo, "")
+        self.multiInfo = nil
+        self:command_handler(data)
+    end
+end
+
+---! handle basic options
 class.handle_basic = function (self, args)
     if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT then
-        local info = packetHelper:decodeMsg("CGGame.HeartBeat", args.msgBody)
-        if info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_CLIENT then
-            local packet = packetHelper:makeProtoData(args.mainType, args.subType, args.msgBody)
-            self.cmd.sendProtocolPacket(packet)
-            -- skynet.error("client heart beat")
-
-        elseif info.fromType == protoTypes.CGGAME_PROTO_HEARTBEAT_SERVER then
-            local now = skynet.time()
-            info.timestamp = info.timestamp or now
-            self.agentInfo.speed_diff = (now - info.timestamp) * 0.5
-            -- skynet.error("server speed diff is ", now, info.timestamp, self.agentInfo.speed_diff)
-        else
-            skynet.error("unknown heart beat fromType", info.fromType, " timestamp: ", info.timestamp)
-        end
-
+        self:basicHeartBeat(args)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST then
-        local appName, addr  = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
-        if not appName or not addr then
-            return
-        end
-
-        local flg, ret = pcall(cluster.call, appName, addr, "getAgentList")
-        if not flg then
-            return
-        end
-
-        local data = packetHelper:encodeMsg("CGGame.AgentList", ret)
-        local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
-                            protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
-        self.cmd.sendProtocolPacket(packet)
+        self:basicAgentList(args)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_NOTICE then
         skynet.error("Server should not receive notice:", args.mainType, args.subType, args.msgBody)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ACL then
         skynet.error("Server should not receive ACL:", args.mainType, args.subType, args.msgBody)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MULTIPLE then
-        self.multiInfo = self.multiInfo or {}
-        local info = packetHelper:decodeMsg("CGGame.MultiBody", args.msgBody)
-        self.multiInfo[info.curIndex] = info.msgBody
-        if info.curIndex == info.maxIndex then
-            local data = table.concat(self.multiInfo, "")
-            self.multiInfo = nil
-            self:command_handler(data)
-        end
+        self:basicMultiple(args)
     else
         skynet.error("Unknown basic", args.mainType, args.subType, args.msgBody)
     end
 end
 
-class.sendChallenge = function (self)
+---! handle auth protocol, send auth challenge
+class.authSendChallenge = function (self)
     self.authInfo.authIndex = 0
     self.authInfo.challenge = crypt.randomkey()
 
@@ -162,7 +179,8 @@ class.sendChallenge = function (self)
     self.cmd.sendProtocolPacket(packet)
 end
 
-class.failAuth = function (self, msg)
+---! send auth fail acl, and then challenge
+class.authSendFail = function (self, msg)
     local info = {
         aclType = protoTypes.CGGAME_ACL_STATUS_AUTH_FAILED,
         aclMsg  = msg
@@ -172,27 +190,12 @@ class.failAuth = function (self, msg)
                         protoTypes.CGGAME_PROTO_SUBTYPE_ACL, data)
     self.cmd.sendProtocolPacket(packet)
 
-    self:sendChallenge()
+    self:authSendChallenge()
 end
 
-class.checkAuth = function (self, info)
+---! check hmac with our secret and index
+class.authCheckHmac = function (self, info)
     local auth = self.authInfo
-    if not strHelper.isNullKey(info.username) then
-        if strHelper.isNullKey(auth.challenge) or strHelper.isNullKey(auth.secret) then
-            getAuthValue(info.username, auth)
-        end
-    end
-
-    if strHelper.isNullKey(auth.challenge) or strHelper.isNullKey(auth.secret) then
-        self:sendChallenge()
-        return
-    end
-
-    info.authIndex = info.authIndex or 0
-    if info.authIndex ~= auth.authIndex then
-        self:failAuth("Wrong Auth Index: " .. info.authIndex)
-        return
-    end
 
     local ret = {}
     ret.username = info.username
@@ -200,7 +203,48 @@ class.checkAuth = function (self, info)
     local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
     ret.hmac   = crypt.hmac64(crypt.hashkey(auth.challenge .. data), auth.secret)
     if ret.hmac ~= info.hmac then
-        self:failAuth(string.format("Wrong HMac : %s %s", crypt.hexencode(ret.hmac), crypt.hexencode(info.hmac)))
+        self:authSendFail(string.format("Wrong HMac : %s %s", crypt.hexencode(ret.hmac), crypt.hexencode(info.hmac)))
+        return false
+    end
+    return true
+end
+
+---! handle auth protocol, check etoken, return the result
+class.authCheckToken = function (self, info)
+    local auth = self.authInfo
+    self.apiLevel = class.API_LEVEL_AUTH
+    local userInfo = self.agentInfo
+    userInfo.FUniqueID = info.username
+    userInfo.FPassword = crypt.desdecode(auth.secret, info.password)
+    userInfo.etoken   = crypt.desdecode(auth.secret, info.etoken)
+
+    userInfo.FLastIP = self.agentInfo.address
+    -- userInfo.FOSType =
+
+    return true
+end
+
+---! handle auth protocol, check incoming variables
+class.authCheckInput = function (self, info)
+    local auth = self.authInfo
+    if not strHelper.isNullKey(info.username) then
+        if strHelper.isNullKey(auth.challenge) or strHelper.isNullKey(auth.secret) then
+            remoteGetAuthValue(info.username, auth)
+        end
+    end
+
+    if strHelper.isNullKey(auth.challenge) or strHelper.isNullKey(auth.secret) then
+        self:authSendChallenge()
+        return
+    end
+
+    info.authIndex = info.authIndex or 0
+    if info.authIndex ~= auth.authIndex then
+        self:authSendFail("Wrong Auth Index: " .. info.authIndex)
+        return
+    end
+
+    if not self:authCheckHmac(info) or not self:authCheckToken(info) then
         return
     end
 
@@ -208,38 +252,46 @@ class.checkAuth = function (self, info)
                         protoTypes.CGGAME_PROTO_SUBTYPE_RESUME_OK, nil)
     self.cmd.sendProtocolPacket(packet)
 
-    ret.password = crypt.desdecode(auth.secret, info.password)
-    ret.etoken   = crypt.desdecode(auth.secret, info.etoken)
-
     auth.authIndex = auth.authIndex + 1
-    setAuthValue(info.username, auth)
+    remoteSetAuthValue(info.username, auth)
 end
 
+---! handle auth protocol, send challenge for new auth, or ask resume for existing auth
+class.authAskResume = function (self, info)
+    if strHelper.isNullKey(info.hmac) or strHelper.isNullKey(info.username)
+        or strHelper.isNullKey(info.password) or strHelper.isNullKey(info.etoken) then
+
+        self:authSendChallenge()
+    else
+        -- check hmac & etoken
+        self:authCheckInput(info)
+    end
+end
+
+---! handle auth protocol, recv exchanged client key, send exchanged server key
+class.authExchangeKeys = function (self, info)
+    self.authInfo.clientkey = info.clientkey
+    local key = crypt.randomkey()
+    self.authInfo.serverkey = key
+
+    local ret = {}
+    ret.serverkey = crypt.dhexchange(key)
+    print("send serverkey", crypt.hexencode(key), "exchanged:", crypt.hexencode(ret.serverkey))
+    local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_AUTH,
+    protoTypes.CGGAME_PROTO_SUBTYPE_SERVERKEY, data)
+    self.cmd.sendProtocolPacket(packet)
+
+    self.authInfo.secret = crypt.dhsecret(self.authInfo.clientkey, key)
+end
+
+---! handle auth protocols
 class.handle_auth = function (self, args)
     local info = packetHelper:decodeMsg("CGGame.AuthInfo", args.msgBody)
     if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME then
-        if strHelper.isNullKey(info.hmac) or strHelper.isNullKey(info.username)
-            or strHelper.isNullKey(info.password) or strHelper.isNullKey(info.etoken) then
-
-            self:sendChallenge()
-        else
-            -- check hmac & etoken
-            self:checkAuth(info)
-        end
+        self:authAskResume(info)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_CLIENTKEY then
-        self.authInfo.clientkey = info.clientkey
-        local key = crypt.randomkey()
-        self.authInfo.serverkey = key
-
-        local ret = {}
-        ret.serverkey = crypt.dhexchange(key)
-        print("send serverkey", crypt.hexencode(key), "exchanged:", crypt.hexencode(ret.serverkey))
-        local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
-        local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_AUTH,
-                            protoTypes.CGGAME_PROTO_SUBTYPE_SERVERKEY, data)
-        self.cmd.sendProtocolPacket(packet)
-
-        self.authInfo.secret = crypt.dhsecret(self.authInfo.clientkey, key)
+        self:authExchangeKeys(info)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_CHALLENGE
         or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_SERVERKEY
         or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_RESUME_OK then
@@ -249,19 +301,182 @@ class.handle_auth = function (self, args)
     end
 end
 
-class.handle_hall = function (self, args)
-    skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
+---! request to exit hall or game
+class.hallReqQuit = function (self, data)
+    if not self.connApp or not self.connAddr then
+        return
+    end
+    local flg, ret = pcall(cluster.call, self.connApp, self.connAddr, "agentQuit",
+                            self.agentInfo.FUniqueID, self.agentInfo.agentSign)
+    print("agent quit returns", flg, ret)
+    if not flg or not ret then
+        self:kickMe()
+    end
 end
 
+---! request to join hall
+class.hallReqJoin = function (self, data)
+    if self.connApp and self.connAddr then
+        print("already conn to remote HallService", self.connApp, self.connAddr)
+        return
+    end
+
+    local app, addr = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
+    print("hall req join, mainNode mainInfo is", app, addr)
+    if not app or not addr then
+        return
+    end
+
+    local info = packetHelper:decodeMsg("CGGame.HallInfo", data)
+    local flg, all = pcall(cluster.call, app, addr, "getHallList", self.agentInfo.FUniqueID, info)
+    print("getHallList returns, flg, all, first", flg, all, all[1])
+    if not flg or #all <= 0 then
+        return
+    end
+
+    for _, one in ipairs(all) do
+        print("found ", one.app, one.pri, "for", info.gameId)
+    end
+    app = all[1].app
+    addr = clsHelper.cluster_addr(app, clsHelper.kHallService)
+    print("HallService On", app, "addr is", addr)
+    if not addr then
+        return
+    end
+
+    local flg, ret = pcall(cluster.call, app, addr, "joinHall", self.agentInfo)
+    if not flg or not ret then
+        print("failed to joinHall", app, addr)
+        return
+    end
+    print("succeed to joinHall", app, addr)
+    self.connApp = app
+    self.connAddr = addr
+    self.apiLevel = class.API_LEVEL_HALL
+end
+
+---! request to set user info
+class.hallRemoteData = function (self, subType, data)
+    if not self.connApp or not self.connAddr then
+        return
+    end
+    local flg, ret = pcall(cluster.call, self.connApp, self.connAddr, "hallData",
+                        self.agentInfo.FUniqueID, self.agentInfo.agentSign, subType, data)
+    print("hall remote data returns", flg, ret)
+    if not flg or not ret then
+        self:kickMe()
+    end
+end
+
+---! hall related
+class.handle_hall = function (self, args)
+    if self.apiLevel < class.API_LEVEL_AUTH then
+        skynet.error("recv hall data in apiLevel", self.apiLevel, args.mainType, args.subType, args.msgBody)
+        return
+    end
+    if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_QUIT then
+        self:hallReqQuit(args.msgBody)
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN then
+        self:hallReqJoin(args.msgBody)
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO
+        or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS
+        or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_BONUS then
+        self:hallRemoteData(args.subType, args.msgBody)
+    else
+        skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
+    end
+end
+
+---! club related
 class.handle_club = function (self, args)
+    if self.apiLevel < class.API_LEVEL_AUTH then
+        skynet.error("recv club data in apiLevel", self.apiLevel, args.mainType, args.subType, args.msgBody)
+        return
+    end
+
     skynet.error("unhandled club", args.mainType, args.subType, args.msgBody)
 end
 
+---! room related
 class.handle_room = function (self, args)
+    if self.apiLevel < class.API_LEVEL_AUTH then
+        skynet.error("recv room data in apiLevel", self.apiLevel, args.mainType, args.subType, args.msgBody)
+        return
+    end
+
     skynet.error("unhandled room", args.mainType, args.subType, args.msgBody)
 end
 
+---! request to join hall
+class.gameReqJoin = function (self, data)
+    if self.connApp and self.connAddr then
+        print("already conn to remote HallService", self.connApp, self.connAddr)
+        return
+    end
+
+    local app, addr = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
+    print("hall req join, mainNode mainInfo is", app, addr)
+    if not app or not addr then
+        return
+    end
+
+    local info = packetHelper:decodeMsg("CGGame.HallInfo", data)
+    local flg, all = pcall(cluster.call, app, addr, "getHallList", self.agentInfo.FUniqueID, info)
+    print("getHallList returns, flg, all, first", flg, all, all[1])
+    if not flg or #all <= 0 then
+        return
+    end
+
+    for _, one in ipairs(all) do
+        print("found ", one.app, one.pri, "for", info.gameId)
+    end
+    app = all[1].app
+    addr = clsHelper.cluster_addr(app, clsHelper.kHallService)
+    print("HallService On", app, "addr is", addr)
+    if not addr then
+        return
+    end
+
+    local flg, ret = pcall(cluster.call, app, addr, "joinHall", self.agentInfo)
+    if not flg or not ret then
+        print("failed to joinHall", app, addr)
+        return
+    end
+    print("succeed to joinHall", app, addr)
+    self.connApp = app
+    self.connAddr = addr
+    self.apiLevel = class.API_LEVEL_GAME
+end
+
+---! request to set user info
+class.gameRemoteData = function (self, subType, data)
+    if not self.connApp or not self.connAddr then
+        return
+    end
+    local flg, ret = pcall(cluster.call, self.connApp, self.connAddr, "hallData",
+                        self.agentInfo.FUniqueID, self.agentInfo.agentSign, subType, data)
+    print("hall remote data returns", flg, ret)
+    if not flg or not ret then
+        self:kickMe()
+    end
+end
+
+---! game related
 class.handle_game = function (self, args)
+    if self.apiLevel < class.API_LEVEL_AUTH then
+        skynet.error("recv game data in apiLevel", self.apiLevel, args.mainType, args.subType, args.msgBody)
+        return
+    end
+
+    if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_GAMEJOIN then
+        self:gameReqJoin(args.msgBody)
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_GAMETRACE
+        or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_BROADCAST then
+        self:gameRemoteData(args.subType, args.msgBody)
+    else
+        skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
+    end
+
     skynet.error("unhandled game", args.mainType, args.subType, args.msgBody)
 end
 
@@ -302,77 +517,6 @@ end
 ---! request handlings
 local REQ = {}
 
-REQ.list = function(args)
-    local list = helper.snax_call(helper.get_InfoServer(), "NodeService", function(proxy)
-        return proxy.req.get_pipe_list()
-    end)
-
-    local deltaPort = -200
-
-    list = list or {}
-    local servers = {}
-    for k,v in pairs(list) do
-        local one = {}
-        one.name = k
-        one.addr = v.address
-        one.port = v.port + deltaPort
-        one.numPlayers = v.numPlayers
-
-        table.insert(servers, one)
-    end
-
-    list = {}
-    list.server_list = servers
-
-    local text = packetHelper:encodeMsg("CGGame.InfoList", list)
-    return text
-end
-
-REQ.hall = function(args)
-    local param = packetHelper:decodeMsg("CGGame.GameInfo", args.msgBody)
-
-    local list = helper.snax_call(helper.get_InfoServer(), "NodeService", function(proxy)
-        ---! lowVersion is FUserID when request from client for hall list
-        return proxy.req.get_hall_list(param)
-    end)
-
-    if not list or #list <= 0 then
-        list = helper.snax_call(helper.get_InfoServer(), "NodeService", function(proxy)
-            ---! lowVersion is FUserID when request from client for hall list
-            return proxy.req.get_hall_list(param, true)
-        end)
-    end
-
-    ---! TODO: check previous playing game to re-connect
-
-    list = list or {}
-
-    local servers = {}
-    for _, node in ipairs(list) do
-        local one = {}
-        one.name        = node.clusterName
-        one.addr        = node.address
-        one.port        = node.port
-        one.numPlayers  = node.numPlayers
-
-        one.gameInfo    = {}
-        local info = one.gameInfo
-        info.gameId         = node.gameId
-        info.gameMode       = node.gameMode
-        info.gameVersion    = node.gameVersion
-        info.lowVersion     = node.lowVersion
-        info.gameName       = node.hallName
-        info.numPlayers     = node.numPlayers
-        info.maxPlayers     = node.highPlayers
-
-        table.insert(servers, one)
-    end
-
-    list = {}
-    list.server_list = servers
-
-    return list
-end
 
 local function command_handler(text)
     local args = packetHelper:decodeMsg("CGGame.ProtoInfo", text)
@@ -380,21 +524,7 @@ local function command_handler(text)
 
     local msg = {}
     if args.mainType == protoTypes.CGGAME_PROTO_TYPE_GETLOGINLIST then
-        if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_LIST_PIPE then
-            msg.mainType = args.mainType
-            msg.msgBody = REQ.list(args)
-        else
-            skynet.error("error traceback: illegal login type", args.subType)
-        end
     elseif args.mainType == protoTypes.CGGAME_PROTO_TYPE_GETHALLLIST then
-        msg.mainType = args.mainType
-        local list = REQ.hall(args)
-        if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_LIST_PIPE then
-            connect_address(list)
-            return
-        else
-            msg.msgBody = packetHelper:encodeMsg("CGGame.InfoList", list)
-        end
     elseif hall_sock then
         if args.mainType == protoTypes.CGGAME_PROTO_TYPE_SETUSERINFO then
             local user = packetHelper:decodeMsg("CGGame.UserInfo", args.msgBody)

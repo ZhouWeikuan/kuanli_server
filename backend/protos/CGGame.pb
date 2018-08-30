@@ -1,5 +1,5 @@
 
-Ì
+‹	
 CGGame.protoCGGame"?
 	ProtoInfo
 mainType (
@@ -37,4 +37,41 @@ noticeText ("˜
 	serverkey (
 hmac (
 etoken (
-	authIndex (
+	authIndex ("A
+HallInfo
+gameId (
+gameVersion (
+gameMode ("…
+UserInfo
+
+fieldNames (
+	FUniqueID (
+	FPassword (
+	FNickName (
+FOSType (
+FMobile (
+FIDCard (
+FEmail (
+FRegTime	 (
+FLastIP
+ (
+FLastLoginTime (
+
+FTotalTime (
+	FAvatarID (
+
+FAvatarUrl (
+FAvatarData (
+	FLocation (
+
+FLongitude (
+	FLatitude (
+	FAltitude (
+	FNetSpeed ("*
+GameInfo
+roomId (
+seatId ("F
+WaitUserInfo
+tableStatus (
+timeout (
+waitMask (

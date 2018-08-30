@@ -97,7 +97,7 @@ local function checked_call (cmd, key, ...)
             redis_conn = nil
             pause()
         else
-            return val
+            return val or ""
         end
     end
 end

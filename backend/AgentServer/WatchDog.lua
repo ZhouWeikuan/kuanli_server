@@ -14,6 +14,7 @@ local sockethelper = require "http.sockethelper"
 local clsHelper = require "ClusterHelper"
 local NumSet    = require "NumSet"
 
+local myInfo = nil
 ---! NodeInfo's address
 local nodeInfo = nil
 ---! gateserver's gate service
@@ -29,6 +30,7 @@ local function close_agent(fd)
         webAgents:removeObject(fd)
         ---! close web socket, kick web agent
         pcall(skynet.send, info.agent, "lua", "disconnect")
+        return
     end
 
     info = tcpAgents:getObject(fd)
@@ -66,6 +68,7 @@ function SOCKET.open(fd, addr)
     info.client_fd  = fd
     info.address    = string.gsub(addr, ":%d+", "")
     info.agent      = agent
+    info.appName    = myInfo.appName
 
     tcpAgents:addObject(info, fd)
 
@@ -129,6 +132,10 @@ function CMD.getStat ()
     return stat
 end
 
+function CMD.nodeOff ()
+    print("TODO: get node off")
+end
+
 ---! 注册LoginWatchDog的处理函数，一种是skynet服务，一种是socket
 local function registerDispatch ()
     skynet.dispatch("lua", function(session, source, cmd, subcmd, ...)
@@ -158,27 +165,25 @@ end
 local function handle_web(id, addr)
     -- limit request body size to 8192 (you can pass nil to unlimit)
     local code, url, method, header, body = httpd.read_request(sockethelper.readfunc(id), 8192)
-    if code then
-        if url == "/tun" then
-            local info = webAgents:getObject(id)
-            if info then
-                close_agent(id)
-            end
-
-            skynet.error("watchdog web agent start", id, addr)
-            local agent = skynet.newservice("WebAgent")
-
-            local info = {}
-            info.watchdog   = skynet.self()
-            info.gate       = nil
-            info.client_fd  = id
-            info.address    = string.gsub(addr, ":%d+", "")
-            info.agent      = agent
-
-            webAgents:addObject(info, id)
-
-            skynet.call(agent, "lua", "start", info, header)
+    if code and url == "/tun" then
+        local info = webAgents:getObject(id)
+        if info then
+            close_agent(id)
         end
+
+        skynet.error("watchdog web agent start", id, addr)
+        local agent = skynet.newservice("WebAgent")
+
+        local info = {}
+        info.watchdog   = skynet.self()
+        info.gate       = nil
+        info.client_fd  = id
+        info.address    = string.gsub(addr, ":%d+", "")
+        info.agent      = agent
+        info.appName    = myInfo.appName
+
+        webAgents:addObject(info, id)
+        skynet.call(agent, "lua", "start", info, header)
     end
 end
 
@@ -188,7 +193,7 @@ local function startWatch ()
     nodeInfo = skynet.uniqueservice(clsHelper.kNodeInfo)
     skynet.call(nodeInfo, "lua", "updateConfig", skynet.self(), clsHelper.kWatchDog)
 
-    local myInfo = skynet.call(nodeInfo, "lua", "getConfig", "nodeInfo")
+    myInfo = skynet.call(nodeInfo, "lua", "getConfig", "nodeInfo")
 
     ---! 启动gate
     local publicAddr = "0.0.0.0"

@@ -22,24 +22,24 @@ class.CGGAME_PROTO_MAINTYPE_AUTH    = 10                        -- auth proto ty
     class.CGGAME_PROTO_SUBTYPE_SERVERKEY    =   4               -- server -> client, give a server key
     class.CGGAME_PROTO_SUBTYPE_RESUME_OK    =   5               -- server -> client, tell resume ok
 
-class.CGGAME_PROTO_MAINTYPE_HALL    = 20
-    class.CGGAME_PROTO_SUBTYPE_HALLQUIT     =   1
-    class.CGGAME_PROTO_SUBTYPE_HALLJOIN     =   2
-    class.CGGAME_PROTO_SUBTYPE_USERINFO     =   3
-    class.CGGAME_PROTO_SUBTYPE_USERSTATUS   =   4
-    class.CGGAME_PROTO_SUBTYPE_BONUS        =   5
-        class.CGGAME_PROTO_BONUS_DAILY  =   1
-        class.CGGAME_PROTO_BONUS_SHARE  =   2
+class.CGGAME_PROTO_MAINTYPE_HALL    = 20                        -- hall proto type
+    class.CGGAME_PROTO_SUBTYPE_QUIT         =   1               -- quit hall and game
+    class.CGGAME_PROTO_SUBTYPE_HALLJOIN     =   2               -- join to hall
+    class.CGGAME_PROTO_SUBTYPE_USERINFO     =   3               -- update user info
+    class.CGGAME_PROTO_SUBTYPE_USERSTATUS   =   4               -- update user status
+    class.CGGAME_PROTO_SUBTYPE_BONUS        =   5               -- recv bonus
+        class.CGGAME_PROTO_BONUS_DAILY  =   1                   -- daily bonus
+        class.CGGAME_PROTO_BONUS_SHARE  =   2                   -- bonus for share
 
 
-class.CGGAME_PROTO_MAINTYPE_CLUB    = 30
+class.CGGAME_PROTO_MAINTYPE_CLUB    = 30                        -- 俱乐部
 
-class.CGGAME_PROTO_MAINTYPE_ROOM    = 40
+class.CGGAME_PROTO_MAINTYPE_ROOM    = 40                        -- 房卡
 
-class.CGGAME_PROTO_MAINTYPE_GAME    = 50
-    class.CGGAME_PROTO_SUBTYPE_GAMEJOIN     =   1
-    class.CGGAME_PROTO_SUBTYPE_GAMETRACE    =   2
-    class.CGGAME_PROTO_SUBTYPE_BROADCAST    =   3
+class.CGGAME_PROTO_MAINTYPE_GAME    = 50                        -- 游戏
+    class.CGGAME_PROTO_SUBTYPE_GAMEJOIN     =   1               -- 加入游戏
+    class.CGGAME_PROTO_SUBTYPE_GAMETRACE    =   2               -- 各游戏内部协议
+    class.CGGAME_PROTO_SUBTYPE_BROADCAST    =   3               -- 游戏的广播
 
 
 

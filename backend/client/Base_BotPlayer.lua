@@ -170,7 +170,7 @@ end
 --------------------------- packet content handler ----------------------
 class.handlePacket = function (self, packet)
     local args = packetHelper:decodeMsg("CGGame.ProtoInfo", packet)
-
+    print("handle packet")
     if args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_BASIC then
         self:handle_basic(args)
     elseif args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_AUTH then
@@ -270,7 +270,19 @@ class.handle_auth = function (self, args)
 end
 
 class.handle_hall = function (self, args)
-    skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
+    print("handle hall")
+    if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO then
+        print("get user info")
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS then
+        print("get user status")
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_BONUS then
+        print("get hall bonus")
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_QUIT
+        or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN then
+        skynet.error("Should not recv this subType", args.mainType, args.subType, args.msgBody)
+    else
+        skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
+    end
 end
 
 class.handle_club = function (self, args)
