@@ -23,9 +23,11 @@ local function addBotAgents (config)
         players[i], players[t] = players[t], players[i]
     end
 
+    skynet.sleep(100)
     local bn = config.BotNum or 0
     print("load ", bn, "client bots")
     for i=1, bn do
+        skynet.sleep(30)
         local bot = skynet.newservice("BotAgent")
         local uid = string.format("uid%05d", 1000 + players[i])
         skynet.call(bot, "lua", "start", config.BotName, uid, config.TickInterval)
@@ -71,13 +73,16 @@ skynet.start(function()
         local config = packetHelper.load_config(conf)
         skynet.call(srv, "lua", "updateConfig", config, clsHelper.kHallConfig)
         skynet.call(hall, "lua", "createInterface", config)
-        addBotAgents(config)
+        skynet.fork(function ()
+            addBotAgents(config)
+        end)
     end
 
     ---! 启动 NodeLink 服务
     skynet.newservice("NodeLink")
 
     ---! 没事啦 休息去吧
+    skynet.sleep(100 * 100)
     skynet.exit()
 end)
 

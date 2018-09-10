@@ -17,9 +17,10 @@ class.base64AuthChallenge = "com.cronlygames.auth.challenge"
 class.base64AuthSecret    = "com.cronlygames.auth.secret"
 class.keyAuthIndex        = "com.cronlygames.auth.index"
 
-class.keyUsername = "com.cronlygames.auth.username"
+class.keyPlayerId = "com.cronlygames.auth.playerId"
 class.keyPassword = "com.cronlygames.auth.password"
 class.keyNickname = "com.cronlygames.auth.nickname"
+class.keyUserCode = "com.cronlygames.auth.usercode"
 
 ---! class functions
 class.load = function ()
@@ -62,14 +63,15 @@ end
 
 class.getAuthInfo = function ()
     local ret = {}
-    ret.username = class.getItem(class.keyUsername)
-    if ret.username == "" then
-        class.setItem(class.keyUsername, "G:1293841824")
+    ret.playerId = class.getItem(class.keyPlayerId)
+    if ret.playerId == "" then
+        class.setItem(class.keyPlayerId, "G:1293841824")
         class.setItem(class.keyPassword, "apple")
         class.setItem(class.keyNickname, "test")
     end
 
-    ret.username    = class.getItem(class.keyUsername)
+    ret.userCode    = class.getItem(class.keyUserCode)
+    ret.playerId    = class.getItem(class.keyPlayerId)
     ret.password    = class.getItem(class.keyPassword)
     ret.nickname    = class.getItem(class.keyNickname)
     ret.authIndex   = class.getItem(class.keyAuthIndex, 0)
@@ -77,7 +79,6 @@ class.getAuthInfo = function ()
     ret.secret      = crypt.base64decode(class.getItem(class.base64AuthSecret))
     return ret
 end
-
 
 return class
 

@@ -276,7 +276,7 @@ local function get_path_hall_user (uid, gameId)
 end
 
 ---! 记录游戏玩家
-function CMD.keepAppGameUser (uid, gameId, appName)
+function CMD.addAppGameUser (uid, gameId, appName)
     local path = get_path_hall_user(uid, gameId)
     local redis = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kRedisService)
     skynet.call(redis, "lua", "runCmd", "SET", path, appName)
@@ -284,7 +284,7 @@ function CMD.keepAppGameUser (uid, gameId, appName)
 end
 
 ---! 清除游戏玩家
-function CMD.freeAppGameUser (uid, gameId)
+function CMD.delAppGameUser (uid, gameId)
     local path = get_path_hall_user(uid, gameId)
     local redis = skynet.call(nodeInfo, "lua", "getConfig", clsHelper.kRedisService)
     return skynet.call(redis, "lua", "runCmd", "DEL", path)

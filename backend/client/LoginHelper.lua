@@ -44,8 +44,7 @@ class.createFromLayer = function (delegate, botName, authInfo, const)
         local agent = BotPlayer.create(delegate, authInfo, self)
         delegate.agent  = agent
 
-        local packet = login:tryHall(Settings.getItem(Settings.keyGameMode, 0))
-        agent:sendPacket(packet)
+        login:tryHall(Settings.getItem(Settings.keyGameMode, 0))
 
         return true
     end
@@ -70,8 +69,7 @@ class.tickCheck = function (self, delegate)
             return
         end
 
-        local packet = self:tryHall(Settings.getGameMode())
-        delegate.agent:sendPacket(packet)
+        self:tryHall(Settings.getGameMode())
 
         return true
     end
@@ -203,18 +201,40 @@ class.tryHall = function (self, gameMode)
 	self.remotesocket:sendPacket(packet)
 end
 
-class.sendUserInfo = function (self, authInfo)
+class.sendUserInfo = function (self)
+    local authInfo = Settings.getAuthInfo()
+
+    local info = {
+        FUserCode   = authInfo.userCode,
+        FNickName   = authInfo.nickname,
+        FOSType     = 'client',
+    }
+    info.fieldNames = {"FUserCode", "FNickName", "FOSType"}
+
+    print("send user info", info)
+    local debugHelper = require "DebugHelper"
+    debugHelper.cclog("send user info", info)
+    debugHelper.printDeepTable(info)
+    debugHelper.printDeepTable(authInfo)
+
+    local data = packetHelper:encodeMsg("CGGame.UserInfo", info)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_MYINFO, data)
+	self.remotesocket:sendPacket(packet)
+end
+
+class.tryGame = function (self, gameMode)
     local const = self.const
 
     local info = {
-        FUniqueID   = authInfo.username,
-        FOSType     = 'client',
+        gameId         = const.GAMEID,
+        gameMode       = gameMode or 0,
+        gameVersion    = const.GAMEVERSION,
     }
 
-    print("send user info", info)
-    local data = packetHelper:encodeMsg("CGGame.UserInfo", info)
-    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
-                        protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO, data)
+    local data = packetHelper:encodeMsg("CGGame.HallInfo", info)
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
+                        protoTypes.CGGAME_PROTO_SUBTYPE_GAMEJOIN, data)
 	self.remotesocket:sendPacket(packet)
 end
 

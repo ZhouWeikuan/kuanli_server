@@ -103,7 +103,7 @@ function CMD.loadDB (tableName, keyName, keyValue, noInsert)
 
     ---! insert where there is no such key/value
     if not noInsert and not row[keyName] then
-        skynet.error(keyName, "=", keyValue, "is not found in ", tableName)
+        skynet.error(keyName, "=", keyValue, "is not found in ", tableName, ", should insert")
         local ins = string.format("INSERT %s (%s) VALUES ('%s')", tableName, keyName, keyValue)
         ret = checked_call(ins)
 

@@ -89,3 +89,182 @@ node2_HallServer1       11.11.1.12:9001 num:0   => [400, 800]   天天斗地主 
 
 其中，**list** 和 **info :d** 这两个命令是我们在调试控制台的输入。我们保证各服务启动的顺序，这样任何一个节点的调试控制台输入 **info :d** 都会定位到**NodeStat**服务，显示相应的节点状态。
 
+## 运行结果
+
+```shell
+[vagrant@node2 backend]$ sh HallServer/start.sh node2 3 config/yuncheng.cfg 
+NodeName = node2, ServerName = HallServer, ServerNo = 3, HallConfig=config/yuncheng.cfg
+debug port is   9003
+load    5       client bots
+joinGame        100161
+joinGame        100166
+got selfSeatId  3
+joinGame        100171
+got selfSeatId  2
+joinGame        100071
+got selfSeatId  1
+check game start
+joinGame        100031
+got selfSeatId  2
+got selfSeatId  3
+check game start
+handCards : M m ♦️2 ♦️A ♣️A ♦️K ♣️K ♠️Q ♥️Q ♣️Q ♠️J ♥️J ♠️T ♣️T ♥️9 ♦️9 ♣️8 ♣️7 ♦️5 ♥️4 ♠️3 
+direct    : ♣️A ♣️K ♣️Q ♥️J ♣️T ♦️9 ♣️8 ♣️7 
+
+handCards : ♠️2 ♥️2 ♣️2 ♠️A ♠️K ♦️J ♣️J ♥️T ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 ♣️6 ♠️5 ♦️3 
+othercards: ♣️A ♣️K ♣️Q ♥️J ♣️T ♦️9 ♣️8 ♣️7 
+follow    : 
+
+handCards : F ♥️A ♥️K ♦️Q ♦️T ♠️9 ♣️9 ♦️8 ♠️7 ♦️6 ♥️5 ♣️5 ♠️4 ♦️4 ♣️4 ♥️3 ♣️3 
+othercards: ♣️A ♣️K ♣️Q ♥️J ♣️T ♦️9 ♣️8 ♣️7 
+follow    : F ♠️4 ♦️4 ♣️4 
+
+handCards : M m ♦️2 ♦️A ♦️K ♠️Q ♥️Q ♠️J ♠️T ♥️9 ♦️5 ♥️4 ♠️3 
+othercards: F ♠️4 ♦️4 ♣️4 
+follow    : M m 
+
+handCards : ♦️3 ♠️5 ♣️6 ♥️6 ♠️6 ♦️7 ♥️7 ♥️8 ♠️8 ♥️T ♣️J ♦️J ♠️K ♠️A ♣️2 ♥️2 ♠️2 
+othercards: M m 
+follow    : 
+
+handCards : ♥️A ♥️K ♦️Q ♦️T ♠️9 ♣️9 ♦️8 ♠️7 ♦️6 ♥️5 ♣️5 ♥️3 ♣️3 
+othercards: M m 
+follow    : 
+
+handCards : ♦️2 ♦️A ♦️K ♠️Q ♥️Q ♠️J ♠️T ♥️9 ♦️5 ♥️4 ♠️3 
+direct    : ♠️3 
+
+handCards : ♦️3 ♠️5 ♣️6 ♥️6 ♠️6 ♦️7 ♥️7 ♥️8 ♠️8 ♥️T ♣️J ♦️J ♠️K ♠️A ♣️2 ♥️2 ♠️2 
+othercards: ♠️3 
+follow    : ♠️5 
+
+handCards : ♥️A ♥️K ♦️Q ♦️T ♠️9 ♣️9 ♦️8 ♠️7 ♦️6 ♥️5 ♣️5 ♥️3 ♣️3 
+othercards: ♠️5 
+follow    : ♣️9 
+
+handCards : ♦️2 ♦️A ♦️K ♠️Q ♥️Q ♠️J ♠️T ♥️9 ♦️5 ♥️4 
+othercards: ♣️9 
+follow    : ♥️Q 
+
+handCards : ♠️2 ♥️2 ♣️2 ♠️A ♠️K ♦️J ♣️J ♥️T ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 ♣️6 ♦️3 
+othercards: ♥️Q 
+follow    : ♠️K 
+
+handCards : ♥️A ♥️K ♦️Q ♦️T ♠️9 ♦️8 ♠️7 ♦️6 ♥️5 ♣️5 ♥️3 ♣️3 
+othercards: ♠️K 
+follow    : ♥️A 
+
+handCards : ♦️2 ♦️A ♦️K ♠️Q ♠️J ♠️T ♥️9 ♦️5 ♥️4 
+othercards: ♥️A 
+follow    : ♦️2 
+
+handCards : ♠️2 ♥️2 ♣️2 ♠️A ♦️J ♣️J ♥️T ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 ♣️6 ♦️3 
+othercards: ♦️2 
+follow    : 
+
+handCards : ♥️K ♦️Q ♦️T ♠️9 ♦️8 ♠️7 ♦️6 ♥️5 ♣️5 ♥️3 ♣️3 
+othercards: ♦️2 
+follow    : 
+
+handCards : ♦️A ♦️K ♠️Q ♠️J ♠️T ♥️9 ♦️5 ♥️4 
+direct    : ♦️A ♦️K ♠️Q ♠️J ♠️T ♥️9 
+
+handCards : ♦️3 ♣️6 ♥️6 ♠️6 ♦️7 ♥️7 ♥️8 ♠️8 ♥️T ♣️J ♦️J ♠️A ♣️2 ♥️2 ♠️2 
+othercards: ♦️A ♦️K ♠️Q ♠️J ♠️T ♥️9 
+follow    : 
+
+handCards : ♣️3 ♥️3 ♣️5 ♥️5 ♦️6 ♠️7 ♦️8 ♠️9 ♦️T ♦️Q ♥️K 
+othercards: ♦️A ♦️K ♠️Q ♠️J ♠️T ♥️9 
+follow    : 
+
+handCards : ♦️5 ♥️4 
+direct    : ♥️4 
+
+handCards : ♦️3 ♣️6 ♥️6 ♠️6 ♦️7 ♥️7 ♥️8 ♠️8 ♥️T ♣️J ♦️J ♠️A ♣️2 ♥️2 ♠️2 
+othercards: ♥️4 
+follow    : ♣️6 
+
+handCards : ♣️3 ♥️3 ♣️5 ♥️5 ♦️6 ♠️7 ♦️8 ♠️9 ♦️T ♦️Q ♥️K 
+othercards: ♣️6 
+follow    : ♦️Q 
+
+handCards : ♦️5 
+othercards: ♦️Q 
+follow    : 
+
+handCards : ♠️2 ♥️2 ♣️2 ♠️A ♦️J ♣️J ♥️T ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 ♦️3 
+othercards: ♦️Q 
+follow    : ♠️A 
+
+handCards : ♥️K ♦️T ♠️9 ♦️8 ♠️7 ♦️6 ♥️5 ♣️5 ♥️3 ♣️3 
+othercards: ♠️A 
+follow    : 
+
+handCards : ♦️5 
+othercards: ♠️A 
+follow    : 
+
+handCards : ♠️2 ♥️2 ♣️2 ♦️J ♣️J ♥️T ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 ♦️3 
+direct    : ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 
+
+handCards : ♣️3 ♥️3 ♣️5 ♥️5 ♦️6 ♠️7 ♦️8 ♠️9 ♦️T ♥️K 
+othercards: ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 
+follow    : 
+
+handCards : ♦️5 
+othercards: ♠️8 ♥️8 ♥️7 ♦️7 ♠️6 ♥️6 
+follow    : 
+
+handCards : ♠️2 ♥️2 ♣️2 ♦️J ♣️J ♥️T ♦️3 
+direct    : ♦️3 
+
+handCards : ♣️3 ♥️3 ♣️5 ♥️5 ♦️6 ♠️7 ♦️8 ♠️9 ♦️T ♥️K 
+othercards: ♦️3 
+follow    : ♣️5 
+
+handCards : ♦️5 
+othercards: ♣️5 
+follow    : 
+
+handCards : ♠️2 ♥️2 ♣️2 ♦️J ♣️J ♥️T 
+othercards: ♣️5 
+follow    : ♥️T 
+
+handCards : ♥️K ♦️T ♠️9 ♦️8 ♠️7 ♦️6 ♥️5 ♥️3 ♣️3 
+othercards: ♥️T 
+follow    : ♥️K 
+
+handCards : ♦️5 
+othercards: ♥️K 
+follow    : 
+
+handCards : ♠️2 ♥️2 ♣️2 ♦️J ♣️J 
+othercards: ♥️K 
+follow    : ♣️2 
+
+handCards : ♦️T ♠️9 ♦️8 ♠️7 ♦️6 ♥️5 ♥️3 ♣️3 
+othercards: ♣️2 
+follow    : 
+
+handCards : ♦️5 
+othercards: ♣️2 
+follow    : 
+
+handCards : ♠️2 ♥️2 ♦️J ♣️J 
+direct    : ♦️J ♣️J 
+
+handCards : ♣️3 ♥️3 ♥️5 ♦️6 ♠️7 ♦️8 ♠️9 ♦️T 
+othercards: ♦️J ♣️J 
+follow    : 
+
+handCards : ♦️5 
+othercards: ♦️J ♣️J 
+follow    : 
+
+handCards : ♠️2 ♥️2 
+direct    : ♠️2 ♥️2 
+
+got selfSeatId  nil
+got selfSeatId  3
+```
+

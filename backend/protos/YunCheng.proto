@@ -1,0 +1,90 @@
+syntax = "proto2";
+
+package YunCheng;
+
+message UserStatus {
+    optional int32  FUserCode   = 1;
+    optional int32  status      = 2;
+    optional int32  tableId     = 3;
+    optional int32  seatId      = 4;
+    optional int32  tableStatus = 5;
+
+    optional int32  FCounter    = 6;
+    optional int32  FScore      = 7;
+    optional int32  FWins       = 8;
+    optional int32  FLoses      = 9;
+    optional int32  FDraws      = 10;
+    optional bytes  FLastGameTime   = 11;
+    optional int32  FSaveDate   = 12;
+    optional int32  FSaveCount  = 13;
+
+    optional int32  FAgentCode  = 14;
+}
+
+message RoomDetails {
+    optional int32 passCount = 1;   // 几局
+    optional int32 costCoins = 2;   // 总花费金币, AA时分摊，别的时候一家支付
+    optional int32 payType   = 3;   // 0, 房主, 1, AA, 2, 赢家
+    optional int32 AAPrice   = 4;   // AA 时的价格
+
+    optional int32 playRule  = 6;   // 普通=0， 花牌=1,   花牌时才有同色三炸可选
+    optional int32 same3Bomb = 7;   // 0, no, 1, same, 2 diff. playRule =0, same3Bomb=0; playRule = 1, same3Bomb = 0, 1 or 2.
+    optional int32 bombMax   = 8;   // 3, 4, 5, 0表示无限
+    optional int32 bottomScore = 9; // 1, 2, 5, 10
+}
+
+// 每一手牌
+message CardInfo {
+    optional int32   seatId     = 1;
+    repeated int32   cards      = 2;
+}
+
+message SeatInfo {
+    optional int32 userCode     = 1;
+    optional int32  seatId      = 2;
+
+    optional int32  multiple    = 3;
+
+
+    repeated int32  handCards   = 5; // we should hide them for others
+    repeated int32  throwCards  = 6; // 上一次打出的牌
+    optional int32  scoreCard   = 7;   // 累计积分
+}
+
+// 每一轮的出牌情况
+message CallInfo {
+    optional int32      seatId         = 1;
+    optional int32      callMult       = 2;
+}
+
+message GameInfo {
+    // waitMask, waitStatus is from  GameTable
+    optional int32      masterSeatId    = 1;
+    optional int32      curSeatId       = 2;
+
+    optional int32      bottomScore     = 3;
+    optional int32      bombCount       = 4;
+    repeated int32      bottomCards     = 5;
+    optional bool       showBottoms     = 6;
+
+    repeated CardInfo   histCards       = 7; //
+
+    optional CardInfo   winCards        = 8;
+    repeated SeatInfo   seatInfo        = 9; // playingUsers
+
+    optional int32      bombMax         = 10; // 炸弹封顶数
+    optional int32      same3Bomb       = 11;
+}
+
+message GameOver {
+    message OneSite {
+        optional   int32    seatId      = 1;
+        optional   int32    deltaChips  = 2;
+        optional   int32    deltaScore  = 3;
+        repeated   int32    handCards   = 4;
+    };
+
+    repeated OneSite  sites         =  1;
+    optional int32    resType       =  2; // 0 正常 1 春天
+}
+

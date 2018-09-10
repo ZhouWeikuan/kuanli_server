@@ -38,10 +38,6 @@ local function close_agent(fd)
         tcpAgents:removeObject(fd)
 
         ---! close tcp socket, kick tcp agent
-        local helper = require "TaskHelper"
-        helper.closeGateAgent(info.gate, fd);
-
-        ---! disconnect never return
         pcall(skynet.send, info.agent, "lua", "disconnect")
     else
         skynet.error("unable to close agent, fd = ", fd)

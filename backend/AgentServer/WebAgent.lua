@@ -58,6 +58,10 @@ function CMD.start (info, header)
         return
     end
 
+    for k, v in pairs(info) do
+        agentInfo[k] = v
+    end
+
     local id = info.client_fd
     socket.start(id)
     pcall(function ()
@@ -69,12 +73,10 @@ function CMD.start (info, header)
         end)
     end
 
-    agentInfo = info
     agentInfo.last_update = skynet.time()
-
     skynet.fork(function()
-        local heartbeat = 7   -- 7 seconds to send heart beat
-        local timeout   = 60  -- 60 seconds, 1 minutes
+        local heartbeat = 3   -- 3 seconds to send heart beat
+        local timeout   = 10  -- 10 seconds to break
         while true do
             local now = skynet.time()
             if now - agentInfo.last_update >= timeout then
@@ -90,6 +92,7 @@ function CMD.start (info, header)
     return 0
 end
 
+---! send protocal back to user socket
 function CMD.sendProtocolPacket (packet)
     if client_sock then
         client_sock:send_binary(packet)
@@ -99,7 +102,7 @@ end
 
 ---! @brief 通知agent主动结束
 function CMD.disconnect ()
-    agentUtil:reqQuit(agentInfo.client_fd)
+    agentUtil:hallReqQuit()
 
     if client_sock then
         client_sock:close()

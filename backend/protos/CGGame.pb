@@ -1,5 +1,5 @@
 
-‹	
+ 
 CGGame.protoCGGame"?
 	ProtoInfo
 mainType (
@@ -30,48 +30,88 @@ noticeType (
 
 noticeText ("˜
 AuthInfo
-username (
+playerId (
 password (
 	challenge (
 	clientkey (
 	serverkey (
 hmac (
 etoken (
-	authIndex ("A
+	authIndex ("e
 HallInfo
 gameId (
 gameVersion (
-gameMode ("…
+gameMode (
+	FUserCode (
+appName ("˜
 UserInfo
 
 fieldNames (
-	FUniqueID (
-	FPassword (
-	FNickName (
-FOSType (
-FMobile (
-FIDCard (
-FEmail (
-FRegTime	 (
-FLastIP
- (
-FLastLoginTime (
+	FUserCode (
+	FUniqueID (
+	FPassword (
+	FNickName (
+FOSType (
+FMobile (
+FIDCard (
+FEmail	 (
+FRegTime
+ (
+FLastIP (
+FLastLoginTime (
 
-FTotalTime (
-	FAvatarID (
+FTotalTime (
+	FAvatarID (
 
-FAvatarUrl (
-FAvatarData (
-	FLocation (
+FAvatarUrl (
+FAvatarData (
+	FLocation (
 
-FLongitude (
-	FLatitude (
-	FAltitude (
-	FNetSpeed ("*
-GameInfo
+FLongitude (
+	FLatitude (
+	FAltitude (
+	FNetSpeed ("<
+SeatInfo
 roomId (
-seatId ("F
+seatId (
+userCode ("F
 WaitUserInfo
 tableStatus (
 timeout (
-waitMask (
+waitMask ("|
+ChatInfo
+gameId (
+chatType (
+
+listenerId (
+speekerCode (
+speakerNick (
+chatText ("Ž
+RoomInfo
+roomId (
+
+expireTime (
+openTime (
+	gameCount (
+	ownerCode (
+	ownerName (
+roomDetails ("\
+ExitInfo
+roomId (
+timeout (
+mask (
+seatId (
+	ownerCode ("?
+TableMapInfo
+field (
+userCode (
+seatId ("T
+GiftInfo
+giftName (
+coinCost (
+	srcSeatId (
+	dstSeatId ("F
+ShareBonusInfo
+maxCount (
+curCount (
+bonusNum (

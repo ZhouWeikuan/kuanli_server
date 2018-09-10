@@ -49,7 +49,7 @@ message NoticeInfo {
 
 /// protoTypes.CGGAME_PROTO_MAINTYPE_AUTH    = 10
 message AuthInfo {
-    optional bytes username     = 1;
+    optional bytes playerId     = 1;
     optional bytes password     = 2;
     optional bytes challenge    = 3;
     optional bytes clientkey    = 4;
@@ -61,45 +61,49 @@ message AuthInfo {
 
 /// protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN
 message HallInfo {
-    optional int32 gameId         = 1;
-    optional int32 gameVersion    = 2;
-    optional int32 gameMode       = 3;
+    optional int32 gameId       = 1;
+    optional int32 gameVersion  = 2;
+    optional int32 gameMode     = 3;
+    optional int32 FUserCode    = 4;
+    optional bytes appName      = 5;
 }
 
 /// protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO
 message UserInfo {
     repeated bytes fieldNames  = 1;
 
-    optional bytes FUniqueID   = 2;    // uid
-    optional bytes FPassword   = 3;
-    optional bytes FNickName   = 4;
-    optional bytes FOSType     = 5;    // iPhone, iPad, Mac, Win, Linux, Android,
+    optional int32 FUserCode   = 2;    // user code, different in games, to replace uid
+    optional bytes FUniqueID   = 3;    // user code, different in games, to replace uid
+    optional bytes FPassword   = 4;
+    optional bytes FNickName   = 5;
+    optional bytes FOSType     = 6;    // iPhone, iPad, Mac, Win, Linux, Android,
 
-    optional bytes FMobile     = 6;
-    optional bytes FIDCard     = 7;
-    optional bytes FEmail      = 8;
-    optional bytes FRegTime    = 9;
+    optional bytes FMobile     = 7;
+    optional bytes FIDCard     = 8;
+    optional bytes FEmail      = 9;
+    optional bytes FRegTime    = 10;
 
-    optional bytes FLastIP          = 10;
-    optional bytes FLastLoginTime   = 11;
-    optional int32 FTotalTime       = 12;
+    optional bytes FLastIP          = 11;
+    optional bytes FLastLoginTime   = 12;
+    optional double FTotalTime      = 13;
 
-    optional int32 FAvatarID   = 13;        // avatar 3
-    optional bytes FAvatarUrl  = 14;        // avatar 1
-    optional bytes FAvatarData = 15;        // avatar 2
+    optional int32 FAvatarID    = 14;        // avatar 3
+    optional bytes FAvatarUrl   = 15;        // avatar 1
+    optional bytes FAvatarData  = 16;        // avatar 2
 
-    optional bytes  FLocation   = 16;
-    optional double FLongitude  = 17;
-    optional double FLatitude   = 18;
-    optional double FAltitude   = 19;
+    optional bytes  FLocation   = 17;
+    optional double FLongitude  = 18;
+    optional double FLatitude   = 19;
+    optional double FAltitude   = 20;
 
-    optional double FNetSpeed   = 20;
+    optional double FNetSpeed   = 21;
 }
 
-/// protoTypes.CGGAME_PROTO_SUBTYPE_GAMEJOIN
-message GameInfo {
-    optional int32 roomId = 1;
-    optional int32 seatId = 2;
+/// protoTypes.CGGAME_PROTO_SUBTYPE_SITDOWN
+message SeatInfo {
+    optional int32 roomId   = 1;
+    optional int32 seatId   = 2;
+    optional int32 userCode = 3;
 }
 
 message WaitUserInfo {
@@ -108,4 +112,51 @@ message WaitUserInfo {
     optional int32 waitMask     = 3;
 }
 
+message ChatInfo {
+    optional int32 gameId           = 1;
+    optional int32 chatType         = 2;    // 0, text, 1 app voice, amr-wb, 2,
+    optional int32 listenerId       = 3;    // listener table's tableId
+    optional int32 speekerCode      = 4;    // speeker's FUserCode
+    optional bytes speakerNick      = 5;
+    optional bytes chatText         = 6;
+}
+
+message RoomInfo {
+    optional int32 roomId       = 1;
+    optional int32 expireTime   = 2;
+    optional int32 openTime     = 3;
+    optional int32 gameCount    = 4;    // gameCount == 0? 看roomDetails
+    optional int32 ownerCode    = 5;    // owner's FUserCode
+    optional bytes ownerName    = 6;
+    optional bytes roomDetails  = 8;
+}
+
+message ExitInfo {
+    optional int32 roomId       = 1;
+    optional int32 timeout      = 2;
+    optional int32 mask         = 3;
+
+    optional int32 seatId       = 4;
+    optional int32 ownerCode    = 5;    // owner's FUserCode
+}
+
+// sendTableMap
+message TableMapInfo {
+    optional bytes field    = 1;
+    repeated int32 userCode = 2;        // FUserCode
+    repeated int32 seatId   = 3;
+}
+
+message GiftInfo {
+    optional bytes  giftName    = 1;
+    optional int32  coinCost    = 2;
+    optional int32  srcSeatId   = 3;
+    optional int32  dstSeatId   = 4;
+}
+
+message ShareBonusInfo {
+    optional int32 maxCount = 1;
+    optional int32 curCount = 2;
+    optional int32 bonusNum = 3;
+}
 

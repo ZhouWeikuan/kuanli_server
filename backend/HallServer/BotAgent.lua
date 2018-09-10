@@ -7,13 +7,17 @@
 local skynet        = require "skynet"
 
 ---! helpers
+local clsHelper     = require "ClusterHelper"
 local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
+
+---! headers
+local protoTypes    = require "ProtoTypes"
 
 ---! variables
 local botPlayer     = nil
 local service       = nil
 
-local agentInfo      = {}
+local agentInfo     = {}
 local tickInterval  = 50
 
 ---! skynet service handlings
@@ -22,31 +26,46 @@ local CMD = {}
 ---! @brief start service
 function CMD.start (botName, uid, TickInterval)
     if botName and botName ~= "" and botPlayer == nil then
-        --[[
-        botPlayer = packetHelper.createObject(botName, CMD, uid)
+        local nodeInfo = skynet.uniqueservice(clsHelper.kNodeInfo)
+        local myInfo   = skynet.call(nodeInfo, "lua", "getConfig", "nodeInfo")
 
+        agentInfo.playerId  = uid
         agentInfo.FUniqueID = uid
         agentInfo.FNickName = uid
         agentInfo.client_fd = -skynet.self()
         agentInfo.agent     = skynet.self()
+        agentInfo.appName   = myInfo.appName
+        agentInfo.agentSign = os.time()
 
         tickInterval       = TickInterval or tickInterval
 
+        botPlayer = packetHelper.createObject(botName, CMD, agentInfo)
+        local ret, code = pcall(skynet.call, service, "lua", "joinGame", agentInfo)
+        if ret then
+            agentInfo.FUserCode = code
+            botPlayer.selfUserCode = code
+        end
 
-        pcall(skynet.call, service, "lua", JoinAgent, agentInfo.client_fd, agentInfo)
-        --]]
+        skynet.sleep(200)
+        local info = {
+            roomId = nil,
+            seatId = nil,
+        }
+        local data = packetHelper:encodeMsg("CGGame.SeatInfo", info)
+        pcall(skynet.call, service, "lua", "gameData", code, agentInfo.agentSign, protoTypes.CGGAME_PROTO_SUBTYPE_SITDOWN, data)
     end
 
     return 0
 end
 
-function CMD.command_handler (cmd, user, packet)
+function CMD.command_handler (cmd, packet)
     local args = packetHelper:decodeMsg("CGGame.ProtoInfo", packet)
-    pcall(skynet.call, service, "lua", GameData, agentInfo.client_fd, args)
+    if args then
+        pcall(skynet.call, service, "lua", "gameData", agentInfo.FUserCode, agentInfo.agentSign, args.subType, args.msgBody)
+    end
 end
 
 function CMD.sendProtocolPacket (packet)
-    print("botAgent send protocol packet")
     if botPlayer then
         botPlayer:recvPacket(packet)
     end
@@ -54,6 +73,7 @@ end
 
 ---! @brief 通知agent主动结束
 function CMD.disconnect ()
+    skynet.exit()
 end
 
 ---! loop exec botPlayer tick frame

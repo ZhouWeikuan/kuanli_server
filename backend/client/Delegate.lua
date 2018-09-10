@@ -4,7 +4,7 @@ local WaitList = require "WaitList"
 local LoginHelper = require "LoginHelper"
 local Settings = require "Settings"
 
-local BotPlayer = require "Base_BotPlayer"
+local BotPlayer = require "BotPlayer_Base"
 
 local protoTypes = require "ProtoTypes"
 local const = require "Const_Landlord"
@@ -72,6 +72,7 @@ end
 class.stage_login = function (self)
     local login = self.login
     login:getOldLoginList(true, true)
+
     local hasAgent = nil
     for k, v in pairs(login.agentList) do
         hasAgent = true
@@ -81,19 +82,25 @@ class.stage_login = function (self)
         print("no agent list found")
         return
     end
+
+    skynet.sleep(100)
     login:tryConnect()
+
+    skynet.sleep(100)
     login:getAgentList()
 
+    skynet.sleep(100)
     self.agent:sendAuthOptions(protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME)
 
     while not self.authOK do
-        print("wait for authOK")
         WaitList.pause()
     end
     print("auth OK!")
 
-    login:tryHall()
-    login:sendUserInfo(self.authInfo)
+    login:tryGame()
+
+    skynet.sleep(100)
+    self.agent:sendSitDownOptions()
 end
 
 class.stage_loop = function (self)

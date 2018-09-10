@@ -13,6 +13,18 @@ local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 ---! hall interface
 local hallInterface = nil
 
+local function getValidPlayer(code, sign)
+    local player = hallInterface.onlineUsers:getObject(code)
+    if not player then
+        print("No such user found", code, sign)
+        return
+    elseif player.FUserCode ~= code or player.agentSign ~= sign then
+        print("User info not match", player.FUserCode, code, player.agentSign, sign)
+        return
+    end
+    return player
+end
+
 ---! 服务接口
 local CMD = {}
 
@@ -21,30 +33,49 @@ function CMD.createInterface (conf)
     return 0
 end
 
-function CMD.agentQuit (uid, sign)
-    hallInterface:agentQuit(uid, sign)
+function CMD.agentQuit (code, sign)
+    local player = getValidPlayer(code, sign)
+    hallInterface:agentQuit(player)
     return 0
 end
 
 function CMD.joinHall (agentInfo)
+    print("joinHall")
     agentInfo.apiLevel = 0
-    hallInterface:addPlayer(agentInfo)
-    return 0
+    local userCode = hallInterface:addPlayer(agentInfo)
+    hallInterface:SendHallText(userCode)
+    return userCode
 end
 
-function CMD.hallData (uid, sign, hallType, data)
-    hallInterface:handleHallData(uid, sign, hallType, data)
+function CMD.hallData (code, sign, hallType, data)
+    local player = getValidPlayer(code, sign)
+    hallInterface:handleHallData(player, hallType, data)
     return 0
 end
 
 function CMD.joinGame (agentInfo)
     agentInfo.apiLevel = 1
-    hallInterface:addPlayer(agentInfo)
+    local userCode = hallInterface:addPlayer(agentInfo)
+    hallInterface:SendGameText(userCode)
+    print("joinGame", userCode)
+    return userCode
+end
+
+function CMD.clubData (code, sign, clubType, data)
+    local player = getValidPlayer(code, sign)
+    hallInterface:handleClubData(player, clubType, data)
     return 0
 end
 
-function CMD.gameData (uid, sign, gameType, data)
-    hallInterface:handleGameData(uid, sign, gameType, data)
+function CMD.roomData (code, sign, roomType, data)
+    local player = getValidPlayer(code, sign)
+    hallInterface:handleRoomData(player, roomType, data)
+    return 0
+end
+
+function CMD.gameData (code, sign, gameType, data)
+    local player = getValidPlayer(code, sign)
+    hallInterface:handleGameData(player, gameType, data)
     return 0
 end
 
