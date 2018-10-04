@@ -1,4 +1,4 @@
-local skynet    = require "skynet"
+local skynet    = skynet or require "skynet"
 local cluster   = require "skynet.cluster"
 
 local const         = require "Const_YunCheng"

@@ -51,6 +51,8 @@ class.CGGAME_PROTO_MAINTYPE_HALL    = 20                        -- hall proto ty
         class.CGGAME_PROTO_BONUS_DAILY  =   1                   -- daily bonus
         class.CGGAME_PROTO_BONUS_SHARE  =   2                   -- bonus for share
     class.CGGAME_PROTO_SUBTYPE_CHAT         =   6               -- chat to user
+    class.CGGAME_PROTO_SUBTYPE_USERINFO     =   7               -- 别人用户信息
+    class.CGGAME_PROTO_SUBTYPE_USERSTATUS   =   8               -- 别人的在线信息
 
 
 class.CGGAME_PROTO_MAINTYPE_CLUB    = 30                        -- 俱乐部
@@ -78,13 +80,10 @@ class.CGGAME_PROTO_MAINTYPE_GAME    = 50                        -- 游戏
         class.CGGAME_MSG_EVENT_CONTINUE        =   7            -- 继续
 
     class.CGGAME_PROTO_SUBTYPE_GIFT         =   4               -- 发送礼物
-    class.CGGAME_PROTO_SUBTYPE_USERINFO     =   5               -- 别人用户信息
-    class.CGGAME_PROTO_SUBTYPE_USERSTATUS   =   6               -- 别人的在线信息
-
-    class.CGGAME_PROTO_SUBTYPE_TABLEMAP     =   7               -- 座位图
-    class.CGGAME_PROTO_SUBTYPE_GAMEINFO     =   8               -- 游戏信息
-    class.CGGAME_PROTO_SUBTYPE_WAITUSER     =   9               -- 等候用户
-    class.CGGAME_PROTO_SUBTYPE_GAMEOVER     =  10               -- 结束信息
+    class.CGGAME_PROTO_SUBTYPE_TABLEMAP     =   5               -- 座位图
+    class.CGGAME_PROTO_SUBTYPE_GAMEINFO     =   6               -- 游戏信息
+    class.CGGAME_PROTO_SUBTYPE_WAITUSER     =   7               -- 等候用户
+    class.CGGAME_PROTO_SUBTYPE_GAMEOVER     =   8               -- 结束信息
 
     class.CGGAME_PROTO_SUBTYPE_SITDOWN      =  11               -- 坐下
     class.CGGAME_PROTO_SUBTYPE_READY        =  12               -- 准备

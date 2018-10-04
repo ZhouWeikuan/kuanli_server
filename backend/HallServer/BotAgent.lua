@@ -58,10 +58,11 @@ function CMD.start (botName, uid, TickInterval)
     return 0
 end
 
-function CMD.command_handler (cmd, packet)
+function CMD.command_handler (cmd, user, packet)
     local args = packetHelper:decodeMsg("CGGame.ProtoInfo", packet)
     if args then
-        pcall(skynet.call, service, "lua", "gameData", agentInfo.FUserCode, agentInfo.agentSign, args.subType, args.msgBody)
+        local cmd = args.mainType == protoTypes.CGGAME_PROTO_MAINTYPE_HALL and "hallData" or "gameData"
+        pcall(skynet.call, service, "lua", cmd, agentInfo.FUserCode, agentInfo.agentSign, args.subType, args.msgBody)
     end
 end
 

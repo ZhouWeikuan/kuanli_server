@@ -1,7 +1,7 @@
 local skynet        = skynet or require "skynet"
-local cluster       = require "skynet.cluster"
 
-local clusterHelper = require "ClusterHelper"
+local cluster       = require "skynet.cluster"
+local clsHelper     = require "ClusterHelper"
 
 local prioQueue     = require "PriorityQueue"
 local protoTypes    = require "ProtoTypes"
@@ -97,7 +97,7 @@ class.CollectUserStatus = function (self, user)
 
     local data   = packetHelper:encodeMsg(gameClass.UserStatus_ProtoName, info)
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
-                        protoTypes.CGGAME_PROTO_SUBTYPE_MYSTATUS, data)
+                        protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS, data)
     return packet
 end
 
@@ -700,6 +700,11 @@ end
 ---! @param gameType      游戏协议
 ---! @param data          数据
 class.handleGameData = function (self, player, gameType, data)
+    local user = self:getUserInfo(player.FUserCode)
+    if user then
+        player = user
+    end
+
     if gameType == protoTypes.CGGAME_PROTO_SUBTYPE_SITDOWN then
         local seatInfo = self:parseSeatInfo(player, data)
         self:SitDown(player, seatInfo)
@@ -718,12 +723,6 @@ class.handleGameData = function (self, player, gameType, data)
     elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_CHANGETABLE  then
         local seatInfo = self:parseSeatInfo(player, data)
         self:ChangeTable(player, seatInfo)
-    elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO then
-        local info = packetHelper:decodeMsg("CGGame.HallInfo", data)
-        self:SendUserInfo(player.FUserCode, info.FUserCode)
-    elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS then
-        local info = packetHelper:decodeMsg("CGGame.HallInfo", data)
-        self:SendUserStatus(player.FUserCode, info.FUserCode)
     elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_GIFT then
         self:SendUserGift(player.FUserCode, data)
     elseif player.tableId then
@@ -859,7 +858,7 @@ end
 
 ---! 解析数据
 class.parseSeatInfo = function (self, player, data)
-    local seatInfo = packetHelper:decodeMsg("CGGame.SeatInfo", data)
+    local seatInfo = packetHelper:decodeMsg("CGGame.SeatInfo", data or "")
     seatInfo = tabHelper.cloneTable(seatInfo)
     if not seatInfo.roomId or seatInfo.roomId <= 0 or not self.allTables[seatInfo.roomId] then
         seatInfo.roomId = nil
@@ -895,7 +894,6 @@ end
 ---! @return true       玩家已经在桌子上了，可能是Sitdown, Ready, Standup, Play中的任意状态
 ---! @return nil        没有成功坐上桌子, player.tableId, player.seatId 无意义
 class.SitDown = function(self, player, seatInfo)
-    skynet.error("try to sitdown", player, seatInfo, seatInfo.tableId, seatInfo.seatId)
     if seatInfo.roomId ~= player.tableId or seatInfo.seatId ~= player.seatId then
         if player.tableId and not self:QuitTable(player, true) then
             -- print("player can't quit")

@@ -1,6 +1,8 @@
 ---! 系统库
-local skynet    = require "skynet"
+local skynet    = skynet or require "skynet"
+
 local cluster   = require "skynet.cluster"
+local clsHelper = require "ClusterHelper"
 
 ---! 依赖库
 local NumSet        = require "NumSet"
@@ -8,7 +10,6 @@ local PrioQueue     = require "PriorityQueue"
 
 local protoTypes    = require "ProtoTypes"
 
-local clsHelper     = require "ClusterHelper"
 local dbHelper      = require "DBHelper"
 local debugHelper   = require "DebugHelper"
 local packetHelper  = require "PacketHelper"
@@ -76,6 +77,9 @@ class.tick = function (self, dt)
 end
 
 class.remoteExecDB = function (self, strSQL)
+    if not cluster then
+        return
+    end
     local app, addr = clsHelper.getMainAppAddr(clsHelper.kDBService)
     if not app or not addr then
         return
@@ -90,6 +94,9 @@ class.remoteExecDB = function (self, strSQL)
 end
 
 class.remoteLoadDB = function (self, tableName, keyName, keyValue, noInsert)
+    if not cluster then
+        return
+    end
     local app, addr = clsHelper.getMainAppAddr(clsHelper.kDBService)
     if not app or not addr then
         return
@@ -104,6 +111,9 @@ class.remoteLoadDB = function (self, tableName, keyName, keyValue, noInsert)
 end
 
 class.remoteUpdateDB = function (self, tableName, keyName, keyValue, fieldName, fieldValue)
+    if not cluster then
+        return
+    end
     local app, addr = clsHelper.getMainAppAddr(clsHelper.kDBService)
     if not app or not addr then
         return
@@ -116,6 +126,9 @@ class.remoteUpdateDB = function (self, tableName, keyName, keyValue, fieldName, 
 end
 
 class.remoteDeltaDB = function (self, tableName, keyName, keyValue, fieldName, deltaValue)
+    if not cluster then
+        return
+    end
     local app, addr = clsHelper.getMainAppAddr(clsHelper.kDBService)
     if not app or not addr then
         return
@@ -128,6 +141,9 @@ class.remoteDeltaDB = function (self, tableName, keyName, keyValue, fieldName, d
 end
 
 class.remoteAddAppGameUser = function (self, user)
+    if not cluster then
+        return
+    end
     local app, addr = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
     if not app or not addr then
         return
@@ -140,6 +156,9 @@ class.remoteAddAppGameUser = function (self, user)
 end
 
 class.remoteDelAppGameUser = function (self, user)
+    if not cluster then
+        return
+    end
     local app, addr = clsHelper.getMainAppAddr(clsHelper.kMainInfo)
     if not app or not addr then
         return
@@ -173,7 +192,7 @@ class.CollectUserInfo = function (self, info)
 
     local data   = packetHelper:encodeMsg(class.UserInfo_ProtoName, need)
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
-                        protoTypes.CGGAME_PROTO_SUBTYPE_MYINFO, data)
+                        protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO, data)
     return packet
 end
 
@@ -376,8 +395,10 @@ end
 
 ---! 增加玩家
 class.addPlayer = function (self, player)
-    local user = self:fetchUserFromDB("FUniqueID", player.FUniqueID)
-    tabHelper.copyTable(player, user)
+    if cluster then
+        local user = self:fetchUserFromDB("FUniqueID", player.FUniqueID)
+        tabHelper.copyTable(player, user)
+    end
 
     local keyName = "FUserCode"
     player = self:clearOldPlayer(player)
@@ -589,13 +610,18 @@ class.hallBonus = function (self, code, data)
 end
 
 class.handleHallData = function (self, player, hallType, data)
-    print("handle hall data", hallType, data)
     if hallType == protoTypes.CGGAME_PROTO_SUBTYPE_MYINFO then
         self:hallUserInfo(player.FUserCode, data)
     elseif hallType == protoTypes.CGGAME_PROTO_SUBTYPE_MYSTATUS then
         self:hallUserStatus(player.FUserCode, data)
     elseif hallType == protoTypes.CGGAME_PROTO_SUBTYPE_BONUS then
         self:hallBonus(player.FUserCode, data)
+    elseif hallType == protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO then
+        local info = packetHelper:decodeMsg("CGGame.HallInfo", data)
+        self:SendUserInfo(player.FUserCode, info.FUserCode)
+    elseif hallType == protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS then
+        local info = packetHelper:decodeMsg("CGGame.HallInfo", data)
+        self:SendUserStatus(player.FUserCode, info.FUserCode)
     else
         skynet.error("Unknown hall type", hallType, data)
         return

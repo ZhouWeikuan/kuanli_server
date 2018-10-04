@@ -128,7 +128,8 @@ end
 ---! update to redis, and mysql; 直接覆盖
 function CMD.updateDB (tableName, keyName, keyValue, fieldName, fieldValue)
     local path = format_path(tableName, keyName, keyValue)
-    return checked_call("HSET", path, fieldName, fieldValue)
+    checked_call("HSET", path, fieldName, fieldValue)
+    return checked_call("EXPIRE", path, conf.expire)
 end
 
 ---! 增量修改

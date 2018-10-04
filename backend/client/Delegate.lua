@@ -7,7 +7,7 @@ local Settings = require "Settings"
 local BotPlayer = require "BotPlayer_Base"
 
 local protoTypes = require "ProtoTypes"
-local const = require "Const_Landlord"
+local const = require "Const_YunCheng"
 
 ---! create the class metatable
 local class = {mt = {}}
@@ -30,7 +30,7 @@ class.create = function ()
     return self
 end
 
-class.command_handler  = function (self, packet)
+class.command_handler  = function (self, user, packet)
     local login = self.login
     if login.remotesocket then
         login.remotesocket:sendPacket(packet)
