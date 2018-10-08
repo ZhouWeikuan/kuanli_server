@@ -76,27 +76,28 @@ message UserInfo {
     optional bytes FUniqueID   = 3;    // user code, different in games, to replace uid
     optional bytes FPassword   = 4;
     optional bytes FNickName   = 5;
-    optional bytes FOSType     = 6;    // iPhone, iPad, Mac, Win, Linux, Android,
+    optional bytes FOSType     = 6;    // device: iPhone, iPad, Mac, Win, Linux, Android,
+    optional bytes FPlatform   = 7;    // appstore: huawei, xiaomi, oppo, vivo, ...
 
-    optional bytes FMobile     = 7;
-    optional bytes FIDCard     = 8;
-    optional bytes FEmail      = 9;
-    optional bytes FRegTime    = 10;
+    optional bytes FMobile     = 10;
+    optional bytes FIDCard     = 11;
+    optional bytes FEmail      = 12;
+    optional bytes FRegTime    = 13;
 
-    optional bytes FLastIP          = 11;
-    optional bytes FLastLoginTime   = 12;
-    optional double FTotalTime      = 13;
+    optional bytes FLastIP          = 15;
+    optional bytes FLastLoginTime   = 16;
+    optional double FTotalTime      = 17;
 
-    optional int32 FAvatarID    = 14;        // avatar 3
-    optional bytes FAvatarUrl   = 15;        // avatar 1
-    optional bytes FAvatarData  = 16;        // avatar 2
+    optional int32 FAvatarID    = 20;        // avatar 3
+    optional bytes FAvatarUrl   = 21;        // avatar 1
+    optional bytes FAvatarData  = 22;        // avatar 2
 
-    optional bytes  FLocation   = 17;
-    optional double FLongitude  = 18;
-    optional double FLatitude   = 19;
-    optional double FAltitude   = 20;
+    optional bytes  FLocation   = 25;
+    optional double FLongitude  = 26;
+    optional double FLatitude   = 27;
+    optional double FAltitude   = 28;
 
-    optional double FNetSpeed   = 21;
+    optional double FNetSpeed   = 30;
 }
 
 /// protoTypes.CGGAME_PROTO_SUBTYPE_SITDOWN

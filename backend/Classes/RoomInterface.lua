@@ -1,7 +1,8 @@
 local skynet        = skynet or require "skynet"
 
-local cluster       = require "skynet.cluster"
-local clsHelper     = require "ClusterHelper"
+-- use skynet.init to determine server or client
+local cluster       = skynet.init and require "skynet.cluster"
+local clsHelper     = skynet.init and require "ClusterHelper"
 
 local prioQueue     = require "PriorityQueue"
 local protoTypes    = require "ProtoTypes"
@@ -164,7 +165,7 @@ end
 ---! @param
 ---! is player sit down or not? make it sit down anyway
 class.PlayerContinue = function(self, player)
-    if cluster then
+    if skynet.init then
         self:remoteDelAppGameUser(player)
     end
 
@@ -198,7 +199,7 @@ class.PlayerBreak = function(self, player)
         player.is_offline = true
         if table then
             table:BroadcastMessage(protoTypes.CGGAME_MSG_EVENT_BREAK, player.seatId, player.FUserCode)
-            if cluster then
+            if skynet.init then
                 self:remoteAddAppGameUser(player)
             end
         end
@@ -423,7 +424,7 @@ end
 ---! 房卡场付款
 class.roomTablePayBill = function (self, table, forced)
     local roomInfo = table.roomInfo
-    if not cluster or not roomInfo or roomInfo.isPayed then
+    if not skynet.init or not roomInfo or roomInfo.isPayed then
         return
     end
 
@@ -721,8 +722,7 @@ class.handleGameData = function (self, player, gameType, data)
     elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_STANDBY then
         self:PlayerStandBy(player)
     elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_CHANGETABLE  then
-        local seatInfo = self:parseSeatInfo(player, data)
-        self:ChangeTable(player, seatInfo)
+        self:ChangeTable(player, data)
     elseif gameType == protoTypes.CGGAME_PROTO_SUBTYPE_GIFT then
         self:SendUserGift(player.FUserCode, data)
     elseif player.tableId then
@@ -884,7 +884,7 @@ class.parseSeatInfo = function (self, player, data)
         local oldTableId = player.oldTableId or -1
         local table = self:getEmptyTable(seatInfo.seatId, oldTableId)
         seatInfo.roomId = table.tableId
-        seatInfo.seatId = table:FindOneEmptySeat()
+        seatInfo.seatId = seatInfo.seatId or table:FindOneEmptySeat()
     end
     return seatInfo
 end
@@ -1036,9 +1036,10 @@ class.QuitTable = function(self, player, force)
 end
 
 ---! @brief 玩家换桌
-class.ChangeTable = function (self, player, seatInfo)
+class.ChangeTable = function (self, player, data)
     player.oldTableId = player.tableId
     if self:QuitTable(player) then
+        local seatInfo = self:parseSeatInfo(player, data)
         self:SitDown(player, seatInfo)
         if self.config.AutoReady then
             self:PlayerReady(player)

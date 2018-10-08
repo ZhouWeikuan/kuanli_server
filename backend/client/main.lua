@@ -9,20 +9,18 @@ local cluster   = require "skynet.cluster"
 
 ---! helper class
 local clsHelper     = require "ClusterHelper"
-local WaitList      = require "WaitList"
 local Delegate      = require "Delegate"
 
 local delegate = nil
 
 local function main_loop ()
-    delegate:main_loop()
+    delegate:stage_login()
 end
 
 local function tickFrame ()
     while true do
         delegate:tickFrame()
         skynet.sleep(10)
-        WaitList.resume()
     end
 end
 

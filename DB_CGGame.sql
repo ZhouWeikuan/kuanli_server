@@ -102,6 +102,7 @@ CREATE TABLE `TUser` (
   `FPassword` char(32) DEFAULT 'Pa$$w0rd',
   `FNickName` varchar(100) NOT NULL DEFAULT '',
   `FOSType` varchar(32) NOT NULL DEFAULT '',
+  `FPlatform` varchar(32) NOT NULL DEFAULT '',
   `FAvatarID` int(11) NOT NULL DEFAULT '0',
   `FAvatarData` blob,
   `FAvatarUrl` varchar(256) DEFAULT NULL,

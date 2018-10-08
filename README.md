@@ -268,3 +268,9 @@ got selfSeatId  nil
 got selfSeatId  3
 ```
 
+## 使用惯例
+
+### lua代码中 区分客户端和服务器端
+
+为了方便客户端和服务器端代码的一致性，在客户端代码里，我们实现了skynet库里 skynet.time, skynet.error等函数，但没有实现skynet.init这个函数，因此在客户端和服务器端的通用代码里，我们使用 if skynet.init (是否服务器) 或者 if not skynet.init (是否客户端) 这样的语句判断是否服务器端，是否客户端，在相应语句中执行对应端相关的代码。
+
