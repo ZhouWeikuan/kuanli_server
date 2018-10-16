@@ -1,5 +1,5 @@
-local skynet = require "skynet"
-local crypt  = require "skynet.crypt"
+local skynet    = skynet or require "skynet"
+local crypt     = skynet.crypt or require "skynet.crypt"
 
 local protoTypes = require "ProtoTypes"
 
@@ -56,20 +56,20 @@ class.request_userinfo = function (self, code)
         return
     end
 
+    local list = {}
+    list.FUserCode = code
+    self.allUsers[code] = list
+
     local info = {
         FUserCode   = code,
     }
     local data = packetHelper:encodeMsg("CGGame.HallInfo", info)
 
-    local list = {}
-    list.FUserCode = code
-    self.allUsers[code] = list
-
-    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
                             protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO, data)
     self:sendPacket(packet)
 
-    packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
+    packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_HALL,
                             protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS, data)
     self:sendPacket(packet)
 end
@@ -77,7 +77,8 @@ end
 class.GetUserAtSeat = function (self, seatId)
     local code = self.tableInfo.playerUsers:getObjectAt(seatId)
     if code then
-        return self:GetUserInfo(code)
+        local user = self:GetUserInfo(code)
+        return user
     end
 end
 
@@ -132,12 +133,14 @@ class.tickFrame = function (self, dt)
         obj = self.recv_list:front()
     end
 
+    local user = self:GetUserInfo(self.selfUserCode)
+
     obj = self.direct_list:front()
     while obj do
         obj = self.direct_list:popFront()
 
         xpcall(function()
-            self.delegate:command_handler(obj.packet)
+            self.delegate:command_handler(user, obj.packet)
         end,
         function(err)
             print(err)
@@ -147,13 +150,12 @@ class.tickFrame = function (self, dt)
         obj = self.direct_list:front()
     end
 
-
     obj = self.delay_list:top()
     while obj and obj.timeout <= now do
         obj = self.delay_list:pop()
 
         xpcall(function()
-            self.delegate:command_handler(obj.packet)
+            self.delegate:command_handler(user, obj.packet)
         end,
         function(err)
             print(err)
@@ -258,7 +260,7 @@ class.sendTableOptions = function(self, subType, tableId, seatId, delay)
         seatId = seatId,
     }
     local msg = {}
-    msg.mainType    = protoTypes.CGGAME_PROTO_TYPE_GAMEDATA
+    msg.mainType    = protoTypes.CGGAME_PROTO_MAINTYPE_GAME
     msg.subType     = subType
     msg.msgBody     = packetHelper:encodeMsg("CGGame.SeatInfo", info)
 
@@ -328,9 +330,9 @@ class.handle_basic = function (self, args)
         local str = table.concat(list, ",")
         -- print("agent list is", str)
 
-        local Settings = require "Settings"
-        if Settings then
-            Settings.setItem(Settings.keyAgentList, str)
+        local AuthUtils = require "AuthUtils"
+        if AuthUtils then
+            AuthUtils.setItem(AuthUtils.keyAgentList, str)
         end
 
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_NOTICE then
@@ -374,12 +376,15 @@ class.handle_auth = function (self, args)
         -- print("get secret", crypt.hexencode(self.authInfo.secret))
         self:sendAuthOptions(protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME)
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_RESUME_OK then
-        local Settings = require "Settings"
+        local AuthUtils = require "AuthUtils"
         self.authInfo.authIndex = (self.authInfo.authIndex or 0) + 1
-        Settings.setItem(Settings.keyAuthIndex, self.authInfo.authIndex)
-        Settings.setItem(Settings.base64AuthChallenge, crypt.base64encode(self.authInfo.challenge))
-        Settings.setItem(Settings.base64AuthSecret, crypt.base64encode(self.authInfo.secret))
+        AuthUtils.setItem(AuthUtils.keyAuthIndex, self.authInfo.authIndex)
+        AuthUtils.setItem(AuthUtils.base64AuthChallenge, crypt.base64encode(self.authInfo.challenge))
+        AuthUtils.setItem(AuthUtils.base64AuthSecret, crypt.base64encode(self.authInfo.secret))
         self.delegate.authOK = true
+        if self.delegate.postAuthAction then
+            self.delegate:postAuthAction()
+        end
     elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME
         or args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_CLIENTKEY then
         print("Client should not receive auth:", args.mainType, args.subType, args.msgBody)
@@ -389,19 +394,22 @@ class.handle_auth = function (self, args)
 end
 
 class.handle_hall = function (self, args)
-    if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN then
+    local typeId = args.subType
+    if typeId == protoTypes.CGGAME_PROTO_SUBTYPE_HALLJOIN then
         self:handleUserJoined(args.msgBody)
-    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MYINFO then
+    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_MYINFO then
+        print("got my info")
         local info = packetHelper:decodeMsg("CGGame.UserInfo", args.msgBody)
 
-    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MYSTATUS then
+    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO then
         local info = packetHelper:decodeMsg("CGGame.UserInfo", args.msgBody)
+        self:UpdateUserInfo(info, typeId)
 
-    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_BONUS then
+    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_BONUS then
         skynet.error("get hall bonus")
-    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_QUIT then
+    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_QUIT then
         skynet.error("quit the server", args.mainType, args.subType, args.msgBody)
-    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_CHAT then
+    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_CHAT then
         self:GameChat(args.msgBody)
     else
         skynet.error("unhandled hall", args.mainType, args.subType, args.msgBody)
@@ -453,7 +461,6 @@ class.handle_broadcast = function (self, data)
         self.tableInfo.playerUsers:setObjectAt(seatId, code)
         if code == self.selfUserCode then
             self.selfSeatId = seatId
-            print("got selfSeatId", self.selfSeatId)
         end
         self.handler:seatStatusChange(seatId, seatstatus)
 
@@ -462,7 +469,6 @@ class.handle_broadcast = function (self, data)
         list.status = seatstatus
         if code == self.selfUserCode then
             self.selfSeatId = -1
-            print("got selfSeatId", self.selfSeatId)
         end
         self.handler:seatStatusChange(seatId, seatstatus)
 
@@ -497,7 +503,6 @@ class.handle_broadcast = function (self, data)
             self.allUsers[code] = list
 
             self.selfSeatId = nil
-            print("got selfSeatId", self.selfSeatId)
             self:resetTableInfo()
         else
             self.allUsers[code] = nil
@@ -527,9 +532,6 @@ class.handle_game = function (self, args)
         self:handleUserJoined(data)
     elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_BROADCAST then
         self:handle_broadcast(data)
-    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO then
-        local info = packetHelper:decodeMsg("CGGame.UserInfo", data)
-        self:UpdateUserInfo(info, typeId)
     elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_WAITUSER then
         local wait = packetHelper:decodeMsg("CGGame.WaitUserInfo", data)
         self:GameWait(wait)
@@ -596,14 +598,13 @@ class.TableMap = function (self, data)
         self:request_userinfo(u)
         if self.selfSeatId == nil and u == self.selfUserCode then
             self.selfSeatId = s
-            print("got selfSeatId", self.selfSeatId)
         end
     end
 
     if map.field == "playerUsers" then
         self.handler:TableMapHandler()
     elseif map.field == "standbyUsers" then
-        self.handler:handleStandby()
+        self.handler:StandByHandler()
     else
         -- playing users
         self.tableInfo.playingUsers:forEach(function (sid, code)
@@ -648,25 +649,33 @@ class.GameChat = function (self, data)
 end
 
 ---------------------------- handler's handle function ------------------
+class.switchScene = function (self)
+    if skynet.init then
+        return
+    end
+    local app = cc.exports.appInstance
+    local view = app:createView("LineScene")
+    view:showWithScene()
+end
+
 class.handleUserJoined = function (self, data)
     local hallInfo = packetHelper:decodeMsg("CGGame.HallInfo", data)
     self.selfUserCode   = hallInfo.FUserCode
+    self:request_userinfo(self.selfUserCode)
 
     print("got userCode", hallInfo.FUserCode)
-    local Settings = require "Settings"
-    if Settings then
-        Settings.setItem(Settings.keyUserCode, hallInfo.FUserCode)
+    local AuthUtils = require "AuthUtils"
+    if AuthUtils then
+        AuthUtils.setItem(AuthUtils.keyUserCode, hallInfo.FUserCode)
     end
     self.authInfo.userCode = hallInfo.FUserCode
 end
 
 class.handleACL = function (self, aclInfo)
     print("ACL type:", aclInfo.aclType, "msg:", aclInfo.aclMsg)
-end
-
-class.handleNotice = function (self, data)
-    local notice = packetHelper:decodeMsg("CGGame.NoticeInfo", data)
-    print("Notice type:", notice.noticeType, "text:", notice.noticeText)
+    if aclInfo.aclType == protoTypes.CGGAME_ACL_STATUS_SERVER_BUSY then
+        self:switchScene()
+    end
 end
 
 ---! 处理room信息的handler
@@ -685,10 +694,15 @@ end
 class.recvMsg = function (self, chatInfo)
 end
 
-class.recvNotice = function(self, chatInfo)
+class.recvNotice = function(self, noteInfo)
+    -- NoticeInfo
+    print("Notice type:", noteInfo.noticeType, "text:", noteInfo.noticeText)
 end
 
 class.TableMapHandler = function (self)
+end
+
+class.StandByHandler = function (self)
 end
 
 class.gameInfoHandler = function (self)
@@ -697,7 +711,7 @@ end
 class.gameTraceHandler = function (self)
 end
 
-class.quitTableHandler = function(self, uid, seatId)
+class.quitTableHandler = function(self, code, seatId)
 end
 
 class.seatStatusChange = function (self, seatId, status)

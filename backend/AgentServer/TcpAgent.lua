@@ -59,7 +59,6 @@ end
 
 ---! @brief 通知agent主动结束
 function CMD.disconnect ()
-    print("disconnect, agentUtil req quit")
     agentUtil:hallReqQuit()
 
     if agentInfo.client_fd then

@@ -1,15 +1,14 @@
-local skynet = require "skynet"
-local crypt = require "skynet.crypt"
+local skynet = skynet or require "skynet"
+local crypt = skynet.crypt or require "skynet.crypt"
 
-local Settings = require "Settings"
-local WaitList = require "WaitList"
+local AuthUtils = require "AuthUtils"
 
-local strHelper     = require "StringHelper"
+local strHelper    = require "StringHelper"
 local packetHelper = require "PacketHelper"
 
 local RemoteSocket = require "RemoteSocket"
 
-local protoTypes    = require "ProtoTypes"
+local protoTypes   = require "ProtoTypes"
 
 
 ---! create the class metatable
@@ -28,7 +27,7 @@ class.create = function (const)
     return self
 end
 
-class.createFromLayer = function (delegate, botName, authInfo, const)
+class.createFromLayer = function (delegate, handler, botName, authInfo, const)
     if delegate.login then
         delegate.login:releaseFromLayer(delegate)
     end
@@ -41,11 +40,11 @@ class.createFromLayer = function (delegate, botName, authInfo, const)
 
     if login.remotesocket then
         local BotPlayer = require(botName)
-        local agent = BotPlayer.create(delegate, authInfo, self)
+        local agent     = BotPlayer.create(delegate, authInfo, handler)
         delegate.agent  = agent
+        handler.agent   = agent
 
-        login:tryHall(Settings.getItem(Settings.keyGameMode, 0))
-
+        delegate.agent:sendAuthOptions(protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME)
         return true
     end
 end
@@ -59,18 +58,19 @@ class.tickCheck = function (self, delegate)
         self:tryConnect()
 
         if not self.remotesocket then
-            print("请确定网络正常后再重试，或联系我们客服QQ群: 543221539", "网络出错")
+            if MessageBox then
+                MessageBox("请确定网络正常后再重试，或联系我们客服QQ群: 543221539", "网络出错")
 
-            --[[
-            local app = cc.exports.appInstance
-            local view = app:createView("LineScene")
-            view:showWithScene()
-            --]]
+                local app = cc.exports.appInstance
+                local view = app:createView("LineScene")
+                view:showWithScene()
+            else
+                print("请确定网络正常后再重试，或联系我们客服QQ群: 543221539", "网络出错")
+            end
             return
         end
 
-        self:tryHall(Settings.getGameMode())
-
+        delegate.agent:sendAuthOptions(protoTypes.CGGAME_PROTO_SUBTYPE_ASKRESUME)
         return true
     end
 end
@@ -120,7 +120,7 @@ end
 class.getOldLoginList = function (self, refreshLogin, checkForeign)
 	self.message = "msgParsingOldLoginServers"
 
-	local data = Settings.getItem(Settings.keyLoginList, "")
+	local data = AuthUtils.getItem(AuthUtils.keyLoginList, "")
 	if refreshLogin or data == "" then
 		data = self:checkAllLoginServers(checkForeign)
 	end
@@ -155,7 +155,9 @@ class.sendHeartBeat = function (self)
     local data = packetHelper:encodeMsg("CGGame.HeartBeat", info)
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
                         protoTypes.CGGAME_PROTO_SUBTYPE_HEARTBEAT, data)
-    self.remotesocket:sendPacket(packet)
+    if self.remotesocket then
+        self.remotesocket:sendPacket(packet)
+    end
     -- print("sendHeartBeat", self.remotesocket)
 end
 
@@ -171,7 +173,7 @@ class.tryConnect = function (self)
             end
 
 			self.remotesocket = conn
-			print("agent to %s:%s success", v.host, v.port)
+			print("agent to ", v.host, v.port, " success")
 			return conn
 		end
 	end
@@ -180,6 +182,8 @@ class.tryConnect = function (self)
 end
 
 class.getAgentList = function (self)
+    self.message = "msgRefreshLoginServerList"
+
     local data = packetHelper:encodeMsg("CGGame.AgentList", {})
     local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_BASIC,
                         protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST, data)
@@ -187,6 +191,7 @@ class.getAgentList = function (self)
 end
 
 class.tryHall = function (self, gameMode)
+    self.message = "msgRefreshHallServerList"
     local const = self.const
 
     local info = {
@@ -202,14 +207,15 @@ class.tryHall = function (self, gameMode)
 end
 
 class.sendUserInfo = function (self)
-    local authInfo = Settings.getAuthInfo()
+    local authInfo = AuthUtils.getAuthInfo()
 
     local info = {
         FUserCode   = authInfo.userCode,
         FNickName   = authInfo.nickname,
-        FOSType     = 'client',
+        FOSType     = authInfo.osType,
+        FPlatform   = authInfo.platform,
     }
-    info.fieldNames = {"FUserCode", "FNickName", "FOSType"}
+    info.fieldNames = {"FUserCode", "FNickName", "FOSType", "FPlatform"}
 
     print("send user info", info)
     local debugHelper = require "DebugHelper"
@@ -224,6 +230,7 @@ class.sendUserInfo = function (self)
 end
 
 class.tryGame = function (self, gameMode)
+    self.message = "msgRefreshGameServerList"
     local const = self.const
 
     local info = {

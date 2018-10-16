@@ -348,9 +348,10 @@ class.SendTableMap = function (self, fieldName, seatId, userCode)
     end)
 
     local myCode = self.playerUsers:getObjectAt(seatId)
-    if not myCode or not self.standbyUsers:hasObject(userCode) then
+    if not myCode and not self.standbyUsers:hasObject(userCode) then
         return
     end
+    myCode = myCode or userCode
     local packet = packetHelper:encodeMsg("CGGame.TableMapInfo", map)
     self:SendGameDataToUser(myCode, protoTypes.CGGAME_PROTO_SUBTYPE_TABLEMAP, packet)
 end
@@ -395,7 +396,7 @@ class.SendGameWait = function(self, mask, newStatus, newTimeout)
 
     local wait = {
         tableStatus = newStatus,
-        timeout     = newTimeout,
+        timeout     = math.ceil(newTimeout),
         waitMask    = mask,
     }
 
@@ -537,8 +538,6 @@ class.CheckGameStart = function (self)
     if self.status ~= protoTypes.CGGAME_TABLE_STATUS_WAITREADY then
         return
     end
-
-    print("check game start")
 
     if self.roomInfo and self.roomInfo.histInfo and self.roomInfo.histInfo.gameOver then
         skynet.error("Can't start released table", self.tableId)

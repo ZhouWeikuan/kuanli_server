@@ -40,7 +40,6 @@ function CMD.agentQuit (code, sign)
 end
 
 function CMD.joinHall (agentInfo)
-    print("joinHall")
     agentInfo.apiLevel = 0
     local userCode = hallInterface:addPlayer(agentInfo)
     hallInterface:SendHallText(userCode)
@@ -57,7 +56,6 @@ function CMD.joinGame (agentInfo)
     agentInfo.apiLevel = 1
     local userCode = hallInterface:addPlayer(agentInfo)
     hallInterface:SendGameText(userCode)
-    print("joinGame", userCode)
     return userCode
 end
 

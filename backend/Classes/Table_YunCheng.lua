@@ -1,5 +1,6 @@
-local skynet    = require "skynet"
-local cluster   = require "skynet.cluster"
+local skynet    = skynet or require "skynet"
+
+-- use skynet.init to determine server or client
 
 local const         = require "Const_YunCheng"
 local dbHelper      = require "DBHelper"
@@ -43,7 +44,7 @@ class.UpdateUserStatus = function (self, user, code, deltaScore)
         end
     end
 
-    if not cluster then
+    if not skynet.init then
         return
     end
 
@@ -72,9 +73,12 @@ class.getGiftPrice = function (self, giftName)
 end
 
 class.notifyVictory = function (self, user, one)
-    if not cluster then
+    if not skynet.init then
         return
     end
+
+    -- disable it in test env
+    do return end
 
     local feed = snax.uniqueservice("FeedService")
     if not feed then

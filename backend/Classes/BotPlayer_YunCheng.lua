@@ -1,7 +1,7 @@
 local skynet        = skynet or require "skynet"
 
-local protoTypes    = require("ProtoTypes")
-local const         = require("Const_YunCheng")
+local protoTypes    = require "ProtoTypes"
+local const         = require "Const_YunCheng"
 local packetHelper  = (require "PacketHelper").create("protos/YunCheng.pb")
 local tableHelper   = require "TableHelper"
 local debugHelper   = require "DebugHelper"
@@ -37,7 +37,7 @@ class.sendLandlordOptions = function(self, callMult, delay)
 
     local raw  = packetHelper:encodeMsg("YunCheng.CallInfo", callInfo)
     local data = packetHelper:makeProtoData(const.YUNCHENG_GAMETRACE_LANDLORD, self.selfSeatId, raw)
-    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_TYPE_GAMEDATA,
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
                         protoTypes.CGGAME_PROTO_SUBTYPE_GAMETRACE, data)
     self:sendPacket(packet, delay)
 end
@@ -56,7 +56,7 @@ class.sendMultipleOptions = function(self, callMult, delay)
 
     local raw  = packetHelper:encodeMsg("YunCheng.CallInfo", callInfo)
     local data = packetHelper:makeProtoData(const.YUNCHENG_GAMETRACE_MULTIPLE, self.selfSeatId, raw)
-    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_TYPE_GAMEDATA,
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
                         protoTypes.CGGAME_PROTO_SUBTYPE_GAMETRACE, data)
     self:sendPacket(packet, delay)
 end
@@ -69,7 +69,7 @@ class.sendThrowOptions = function(self, cards, delay)
 
     local raw  = packetHelper:encodeMsg("YunCheng.CardInfo", cardInfo)
     local data = packetHelper:makeProtoData(const.YUNCHENG_GAMETRACE_THROW, self.selfSeatId, raw)
-    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_TYPE_GAMEDATA,
+    local packet = packetHelper:makeProtoData(protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
                         protoTypes.CGGAME_PROTO_SUBTYPE_GAMETRACE, data)
     self:sendPacket(packet, delay)
 end
@@ -79,6 +79,11 @@ end
 class.handle_hall = function (self, args)
     if args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_MYSTATUS then
         local info = packetHelper:decodeMsg("YunCheng.UserStatus", args.msgBody)
+
+    elseif args.subType == protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS then
+        local info = packetHelper:decodeMsg("YunCheng.UserStatus", args.msgBody)
+        self:UpdateUserInfo(info, args.subType)
+
     else
         baseClass.handle_hall(self, args)
     end
@@ -106,10 +111,7 @@ end
 ---! 处理游戏协议
 class.handle_game = function (self, args)
     local typeId = args.subType
-    if typeId == protoTypes.CGGAME_PROTO_SUBTYPE_USERSTATUS then
-        local info = packetHelper:decodeMsg("YunCheng.UserStatus", args.msgBody)
-        self:UpdateUserInfo(info, typeId)
-    elseif typeId == protoTypes.CGGAME_PROTO_SUBTYPE_GAMEOVER then
+    if typeId == protoTypes.CGGAME_PROTO_SUBTYPE_GAMEOVER then
         local gameoverinfo = packetHelper:decodeMsg("YunCheng.GameOver", args.msgBody)
         self:UpdateGameOverData(gameoverinfo)
     else
@@ -175,8 +177,6 @@ class.UpdateGameOverData = function(self,info)
     self.handler:GameOverHandler()
 end
 
-
-
 class.GameInfo = function (self, data)
     --- update game info
     local info = packetHelper:decodeMsg("YunCheng.GameInfo", data)
@@ -226,10 +226,10 @@ end
 
 class.GameTrace = function (self, data)
     local info = packetHelper:decodeMsg("CGGame.ProtoInfo", data)
+    local gameInfo = self.tableInfo.gameInfo
+    local userdata = gameInfo.userdata
     if info.mainType == const.YUNCHENG_GAMETRACE_PICKUP then
         local cardInfo = packetHelper:decodeMsg("YunCheng.CardInfo", info.msgBody)
-        local gameInfo = self.tableInfo.gameInfo
-        local userdata = gameInfo.userdata
         userdata:setHandCards(cardInfo.seatId, cardInfo.cards)
 
         for sid=1, const.YUNCHENG_MAX_PLAYER_NUM do
@@ -254,7 +254,6 @@ class.GameTrace = function (self, data)
         local callInfo = packetHelper:decodeMsg("YunCheng.CallInfo", info.msgBody)
         if callInfo.callMult > 1 then
             self.handler:callLandLord(callInfo.seatId, 1)
-            local gameInfo = self.tableInfo.gameInfo
             gameInfo.masterSeatId = callInfo.seatId
             local seatInfo = gameInfo.seatInfo[gameInfo.masterSeatId]
             seatInfo.multiple = 2
@@ -266,11 +265,8 @@ class.GameTrace = function (self, data)
         -- self.handler:repaintMaster()
     elseif info.mainType == const.YUNCHENG_GAMETRACE_REFRESH then
         local cardInfo = packetHelper:decodeMsg("YunCheng.CardInfo", info.msgBody)
-        local gameInfo = self.tableInfo.gameInfo
         local seatInfo = gameInfo.seatInfo[cardInfo.seatId]
         seatInfo.handCards = tableHelper.cloneArray(cardInfo.cards)
-
-        local userdata = gameInfo.userdata
         userdata:setHandCards(cardInfo.seatId, seatInfo.handCards)
 
         self.handler:repaintCardsBySeatId(cardInfo.seatId, seatInfo)
@@ -278,7 +274,6 @@ class.GameTrace = function (self, data)
 
     elseif info.mainType == const.YUNCHENG_GAMETRACE_MULTIPLE then
         local callInfo = packetHelper:decodeMsg("YunCheng.CallInfo", info.msgBody)
-        local gameInfo = self.tableInfo.gameInfo
         local seatInfo = gameInfo.seatInfo[callInfo.seatId]
         callInfo.callMult = callInfo.callMult ~= 2 and 1 or 2
         seatInfo.multiple = seatInfo.multiple * callInfo.callMult
@@ -318,8 +313,6 @@ class.GameTrace = function (self, data)
 
     elseif info.mainType == const.YUNCHENG_GAMETRACE_THROW then
         local cardInfo = packetHelper:decodeMsg("YunCheng.CardInfo", info.msgBody)
-        local gameInfo = self.tableInfo.gameInfo
-        local userdata = gameInfo.userdata
         if #cardInfo.cards > 0 and cardInfo.cards[1] >= 0 then
             userdata:addHistCards(cardInfo.cards);
             self.handler:outCardsAction(cardInfo.cards, cardInfo.seatId)
@@ -330,7 +323,6 @@ class.GameTrace = function (self, data)
 
     elseif info.mainType == const.YUNCHENG_GAMETRACE_SHOWBOTTOM then
         local cardInfo = packetHelper:decodeMsg("YunCheng.CardInfo", info.msgBody)
-        local gameInfo = self.tableInfo.gameInfo
         gameInfo.showBottoms = true
         gameInfo.masterSeatId = cardInfo.seatId
         gameInfo.bottomCards = {}
@@ -342,7 +334,6 @@ class.GameTrace = function (self, data)
         -- self.handler:repaintMaster()
     elseif info.mainType == const.YUNCHENG_GAMETRACE_BOMBMULT then
         local callInfo = packetHelper:decodeMsg("YunCheng.CallInfo", info.msgBody)
-        local gameInfo = self.tableInfo.gameInfo
         gameInfo.bombCount = callInfo.callMult
         self.handler:repaintBottomMult(callInfo.seatId)
     else
@@ -538,62 +529,64 @@ class.GameOverHandler = function (self)
 end
 
 class.GameWaitHandler = function (self, mask, status, timeout)
-    if self:IsWaitingForMe(mask) then
-        local gameInfo = self.tableInfo.gameInfo
+    if not self:IsWaitingForMe(mask) then
+        return
+    end
 
-        if status == protoTypes.CGGAME_TABLE_STATUS_IDLE then
-        elseif status == protoTypes.CGGAME_TABLE_STATUS_WAITREADY then
-            --[[
-            local cnt = self.tableInfo.playerUsers:getCount()
-            if not self.handler.is_offline and cnt <= 1 and not self.isJumped then
-                self:sendTableOptions(protoTypes.CGGAME_PROTO_SUBTYPE_CHANGETABLE, math.random(1, 2), math.random(2, 4))
-                self.isJumped = true
-            elseif not self.isJumped then --]]
-                local msg = {
-                    mainType    = protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
-                    subType     = protoTypes.CGGAME_PROTO_SUBTYPE_READY,
-                    msgBody     = nil
-                }
+    local gameInfo = self.tableInfo.gameInfo
 
-                local packet = packetHelper:encodeMsg("CGGame.ProtoInfo", msg)
-                self:sendPacket(packet, math.random(1, 3))
-            -- end
-        elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_PICKUP then
-            local seatInfo = gameInfo.seatInfo[self.selfSeatId]
-            local userdata = gameInfo.userdata
+    if status == protoTypes.CGGAME_TABLE_STATUS_IDLE then
+    elseif status == protoTypes.CGGAME_TABLE_STATUS_WAITREADY then
+        --[[
+        local cnt = self.tableInfo.playerUsers:getCount()
+        if not self.handler.is_offline and cnt <= 1 and not self.isJumped then
+        self:sendTableOptions(protoTypes.CGGAME_PROTO_SUBTYPE_CHANGETABLE, math.random(1, 2), math.random(2, 4))
+        self.isJumped = true
+        elseif not self.isJumped then --]]
+        local msg = {
+            mainType    = protoTypes.CGGAME_PROTO_MAINTYPE_GAME,
+            subType     = protoTypes.CGGAME_PROTO_SUBTYPE_READY,
+            msgBody     = nil
+        }
 
-        elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_LANDLORD then
-            local seatInfo = gameInfo.seatInfo[self.selfSeatId]
-            local userdata = gameInfo.userdata
+        local packet = packetHelper:encodeMsg("CGGame.ProtoInfo", msg)
+        self:sendPacket(packet, math.random(1, 3))
+        -- end
+    elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_PICKUP then
+        local seatInfo = gameInfo.seatInfo[self.selfSeatId]
+        local userdata = gameInfo.userdata
 
-            local winPoss = userdata:getWinPossible(seatInfo.handCards)
-            local mult = 1
-            if userdata:bigEnough(seatInfo.handCards) or
-                (gameInfo.masterSeatId == 0 and winPoss >= 0.3)
-                or (gameInfo.masterSeatId ~= 0 and winPoss >= 0.6) then
-                mult = 2
-            end
-            self:sendLandlordOptions(mult, 1)
-        elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_MULTIPLE then
-            local seatInfo = gameInfo.seatInfo[self.selfSeatId]
-            local userdata = gameInfo.userdata
+    elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_LANDLORD then
+        local seatInfo = gameInfo.seatInfo[self.selfSeatId]
+        local userdata = gameInfo.userdata
 
-            local winPoss = userdata:getWinPossible(seatInfo.handCards)
-            if winPoss < 0.6 then
-                self:sendMultipleOptions(1)
-            else
-                self:sendMultipleOptions(2)
-            end
-        elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_THROW then
-            self:AutoThrow()
-
-        elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_GAMEOVER then
-            print ("bot wait for me to game over")
-        elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_NEWGAME then
-            print ("bot wait for me to new game")
-        else
-            print ("bot wait for me to do evil", status)
+        local winPoss = userdata:getWinPossible(seatInfo.handCards)
+        local mult = 1
+        if userdata:bigEnough(seatInfo.handCards) or
+            (gameInfo.masterSeatId == 0 and winPoss >= 0.3)
+            or (gameInfo.masterSeatId ~= 0 and winPoss >= 0.6) then
+            mult = 2
         end
+        self:sendLandlordOptions(mult, 1)
+    elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_MULTIPLE then
+        local seatInfo = gameInfo.seatInfo[self.selfSeatId]
+        local userdata = gameInfo.userdata
+
+        local winPoss = userdata:getWinPossible(seatInfo.handCards)
+        if winPoss < 0.6 then
+            self:sendMultipleOptions(1)
+        else
+            self:sendMultipleOptions(2)
+        end
+    elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_THROW then
+        self:AutoThrow()
+
+    elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_GAMEOVER then
+        print ("bot wait for me to game over")
+    elseif status == const.YUNCHENG_TABLE_STATUS_WAIT_NEWGAME then
+        print ("bot wait for me to new game")
+    else
+        print ("bot wait for me to do evil", status)
     end
 end
 
