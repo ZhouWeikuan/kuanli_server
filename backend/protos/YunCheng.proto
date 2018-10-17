@@ -40,7 +40,7 @@ message CardInfo {
 }
 
 message SeatInfo {
-    optional int32 userCode     = 1;
+    optional int32  userCode    = 1;
     optional int32  seatId      = 2;
 
     optional int32  multiple    = 3;

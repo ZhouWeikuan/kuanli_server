@@ -4,7 +4,7 @@ local WaitList = require "WaitList"
 local LoginHelper = require "LoginHelper"
 local AuthUtils = require "AuthUtils"
 
-local BotPlayer = require "BotPlayer_Base"
+local BotPlayer = require "BotPlayer_YunCheng"
 
 local protoTypes = require "ProtoTypes"
 local const = require "Const_YunCheng"

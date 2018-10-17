@@ -443,12 +443,9 @@ class.handle_room = function (self, args)
     end
     local flg, ret = pcall(cluster.call, self.connApp, self.connAddr, "roomData",
                         self.agentInfo.FUserCode, self.agentInfo.agentSign, args.subType, args.msgBody)
-    print("room remote data returns", flg, ret)
     if not flg or not ret then
         self:kickMe()
     end
-
-    skynet.error("unhandled room", args.mainType, args.subType, args.msgBody)
 end
 
 ---! request to join hall
