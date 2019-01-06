@@ -12,6 +12,7 @@ local packetHelper  = (require "PacketHelper").create("protos/CGGame.pb")
 
 ---! hall interface
 local hallInterface = nil
+local nodeInfo = nil
 
 local function getValidPlayer(code, sign)
     local player = hallInterface.onlineUsers:getObject(code)
@@ -92,6 +93,16 @@ local function game_loop()
         skynet.timeout(hallInterface.tickInterval, game_loop)
         xpcall( function()
             hallInterface:tick(hallInterface.tickInterval/100)
+
+            local cnt = hallInterface.onlineUsers:getCount()
+            local bn  = hallInterface.config.BotNum or 0
+            cnt = cnt - bn
+            skynet.call(nodeInfo, "lua", "updateConfig", cnt, "nodeInfo", "numPlayers")
+
+            local ret, nodeLink = pcall(skynet.call, nodeInfo, "lua", "getServiceAddr", clsHelper.kNodeLink)
+            if ret and nodeLink ~= "" then
+                pcall(skynet.send, nodeLink, "lua", "heartBeat", cnt)
+            end
         end,
         function(err)
             skynet.error(err)
@@ -117,7 +128,7 @@ skynet.start(function()
     end)
 
     ---! 获得NodeInfo 服务 注册自己
-    local nodeInfo = skynet.uniqueservice(clsHelper.kNodeInfo)
+    nodeInfo = skynet.uniqueservice(clsHelper.kNodeInfo)
     skynet.call(nodeInfo, "lua", "updateConfig", skynet.self(), clsHelper.kHallService)
 
     ---! 游戏循环

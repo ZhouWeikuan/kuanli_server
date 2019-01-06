@@ -11,7 +11,7 @@ else
 fi
 
 if [ $cmd = "all" ];then
-		git submodule update --init
+		git submodule update --init --recursive
 
         echo -e "\n make pbc"
         cd $dir/pbc && pwd

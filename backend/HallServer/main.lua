@@ -25,13 +25,13 @@ local function addBotAgents (config)
 
     skynet.sleep(100)
     local bn = config.BotNum or 0
-    print("load ", bn, "client bots")
     for i=1, bn do
         skynet.sleep(30)
         local bot = skynet.newservice("BotAgent")
         local uid = string.format("uid%05d", 1000 + players[i])
         skynet.call(bot, "lua", "start", config.BotName, uid, config.TickInterval)
     end
+    print("load ", bn, "client bots")
 end
 
 --! @brief start services

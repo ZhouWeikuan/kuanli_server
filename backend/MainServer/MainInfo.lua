@@ -303,7 +303,7 @@ function CMD.getStat ()
 
     local str = nil
     local arr = {}
-    table.insert(arr, os.date() .. "\n")
+    table.insert(arr, "\n" .. os.date() .. "\n")
     table.insert(arr, "[Agent List]\n")
 
     local agentCount = 0
@@ -331,7 +331,7 @@ function CMD.getStat ()
     end
 
     str = string.format("\n大厅服务器数目:%d \t客户服务器数目:%d \t登陆人数:%d \t游戏人数:%d\n",
-                            hallNum, agentNum, hallCount, agentCount)
+                            hallNum, agentNum, agentCount, hallCount)
     table.insert(arr, str)
 
     return strHelper.join(arr, "")

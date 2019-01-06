@@ -73,11 +73,12 @@ message UserInfo {
     repeated bytes fieldNames  = 1;
 
     optional int32 FUserCode   = 2;    // user code, different in games, to replace uid
-    optional bytes FUniqueID   = 3;    // user code, different in games, to replace uid
+    optional bytes FUniqueID   = 3;    // unique id, or uid, same for all games
     optional bytes FPassword   = 4;
     optional bytes FNickName   = 5;
     optional bytes FOSType     = 6;    // device: iPhone, iPad, Mac, Win, Linux, Android,
     optional bytes FPlatform   = 7;    // appstore: huawei, xiaomi, oppo, vivo, ...
+    optional bytes FUserName   = 8;
 
     optional bytes FMobile     = 10;
     optional bytes FIDCard     = 11;
