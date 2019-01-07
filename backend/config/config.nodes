@@ -1,3 +1,4 @@
+-- AgentServer: maxIndex 99 for each node [0, 99]
 AgentServer = {
     debugPort = 8000,
     nodePort  = 8100,
@@ -6,12 +7,14 @@ AgentServer = {
     maxIndex  = 1,
 }
 
+-- MainServer: maxIndex 49 for each node [0, 49]
 MainServer = {
     debugPort = 8500,
     nodePort  = 8550,
     maxIndex  = 1,
 }
 
+-- HallServer: maxIndex 499 for each node [0, 499]
 HallServer = {
     debugPort = 9000,
     nodePort  = 9500,

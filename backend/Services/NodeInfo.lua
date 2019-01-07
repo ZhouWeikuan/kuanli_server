@@ -112,7 +112,7 @@ function CMD.nodeOff ()
 
     ---! 通知 MainInfo, MainServer;
     ---!    HallService, HallServer
-    ---!    atchDog, AgentServer
+    ---!    watchDog, AgentServer
     local poss = {clsHelper.kMainInfo, clsHelper.kHallService, clsHelper.kWatchDog}
     for _, name in ipairs(poss) do
         old = info[name]

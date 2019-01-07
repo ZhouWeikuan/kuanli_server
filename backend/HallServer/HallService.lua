@@ -84,7 +84,7 @@ function CMD.logStat ()
 end
 
 function CMD.nodeOff ()
-    print ("TODO: get node off")
+    print ("TODO: HallService get node off")
     return 0
 end
 
