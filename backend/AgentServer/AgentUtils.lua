@@ -208,8 +208,8 @@ class.authCheckHmac = function (self, info)
 
     local ret = {}
     ret.playerId  = info.playerId
-    ret.authIndex = auth.authIndex
-    local data = packetHelper:encodeMsg("CGGame.AuthInfo", ret)
+    ret.authIndex = math.floor(auth.authIndex + 0.01)
+    local data = ret.playerId .. ";" .. ret.authIndex
     ret.hmac   = crypt.hmac64(crypt.hashkey(auth.challenge .. data), auth.secret)
     if ret.hmac ~= info.hmac then
         self:authSendFail(string.format("Wrong HMac : %s %s", crypt.hexencode(ret.hmac), crypt.hexencode(info.hmac)))

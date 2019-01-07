@@ -315,7 +315,7 @@ end
 
 ---! @brief 发送数据到用户
 class.sendPacketToUser = function (self, packet, code)
-    self.room:sendPacketToUser(packet, code)
+    self.room:sendPacketToUser(packet, code, 1)
 end
 
 ---! 发送acl信息给整个桌子的用户

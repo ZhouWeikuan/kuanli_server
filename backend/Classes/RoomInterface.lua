@@ -697,7 +697,7 @@ end
 ---! @param gameType      游戏协议
 ---! @param data          数据
 class.handleGameData = function (self, player, gameType, data)
-    local user = self:getUserInfo(player.FUserCode)
+    local user = player and self:getUserInfo(player.FUserCode)
     if user then
         player = user
     end
