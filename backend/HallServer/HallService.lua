@@ -83,9 +83,16 @@ function CMD.logStat ()
     return 0
 end
 
-function CMD.nodeOff ()
-    print ("TODO: HallService get node off")
-    return 0
+function CMD.noticeAll (msg)
+    if not hallInterface then
+        return 0
+    end
+
+    hallInterface.onlineUsers:forEach(function (player)
+        hallInterface:sendPacketToUser(msg, player.FUserCode)
+    end)
+
+    return 1
 end
 
 local function game_loop()

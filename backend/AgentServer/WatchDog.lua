@@ -117,8 +117,15 @@ function CMD.closeAgent(fd)
 end
 
 ---! @brief place holder, we may use it later
-function CMD.noticeAllAgents(msg)
-    skynet.error("watchdog get notice", msg)
+function CMD.noticeAll (msg)
+    webAgents:forEach(function (info)
+        pcall(skynet.send, info.agent, "lua", "sendProtocolPacket", msg)
+    end)
+
+    tcpAgents:forEach(function (info)
+        pcall(skynet.send, info.agent, "lua", "sendProtocolPacket", msg)
+    end)
+
     return 0
 end
 
@@ -128,10 +135,6 @@ function CMD.getStat ()
     stat.tcp = tcpAgents:getCount()
     stat.sum = stat.web + stat.tcp
     return stat
-end
-
-function CMD.nodeOff ()
-    print("TODO: WatchDog get node off")
 end
 
 function CMD.gateOff ()
