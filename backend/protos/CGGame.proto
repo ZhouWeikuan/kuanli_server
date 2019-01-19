@@ -27,6 +27,7 @@ message AclInfo {
 message HeartBeat {
     optional int32  fromType    = 1;
     optional double timestamp   = 2;
+    optional bytes  networkType = 3;        /// WiFi, 3G, 4G, etc...
 }
 
 /// protoTypes.CGGAME_PROTO_SUBTYPE_AGENTLIST    =   4
@@ -63,9 +64,13 @@ message AuthInfo {
 message HallInfo {
     optional int32 gameId       = 1;
     optional int32 gameVersion  = 2;
-    optional int32 gameMode     = 3;
-    optional int32 FUserCode    = 4;
-    optional bytes appName      = 5;
+    optional int32 lowVersion   = 3;
+    optional int32 gameMode     = 4;
+    optional int32 numPlayers   = 5;
+    optional int32 maxPlayers   = 6;
+
+    optional int32 FUserCode    = 10;
+    optional bytes appName      = 11;
 }
 
 /// protoTypes.CGGAME_PROTO_SUBTYPE_USERINFO

@@ -2,7 +2,12 @@ PROTO_PATH=.
 
 .PHONY : all clean
 
-PROTOS = CGGame YunCheng
+# PROTOS = CGGame Jinhua NiuNiu Tractor Landlord Guandan Battleship BlackJack Holdem \
+		 Ludo Xiangqi Chess Gomoku CNChecker Mahjong13 Mahjong2 AnQing YunCheng \
+		 Snake CellGame Rocket
+
+PROTOS = CGGame YunCheng \
+		 Rocket
 
 all : $(foreach v, $(PROTOS), $(v).pb)
 

@@ -1,0 +1,97 @@
+syntax = "proto2";
+
+package Rocket;
+
+message UserStatus {
+    optional int32  FUserCode       = 1;
+    optional int32  FScore          = 2;
+    optional int32  FCounter        = 3;
+    optional bytes  FLastGameTime   = 4;
+    optional int32  FSaveDate       = 5;
+    optional int32  FSaveCount      = 6;
+
+    optional int32  gameSkin        = 10;
+    optional int32  status          = 11;
+    optional int32  killNum         = 12;
+}
+
+// client to server
+message NicknameInfo {
+    optional bytes      nickname    = 1;
+    optional int32      skinId      = 2;
+}
+
+// message DrawLine is same as MouseMove
+message Position {
+    optional float  x       = 1;
+    optional float  y       = 2;
+    optional float  s       = 3;
+}
+
+message ActionInfo {
+    optional int32      actionCode  = 1;
+}
+
+message PlayerInfo {
+    optional int32      playerId    = 1;
+    optional int32      currScore   = 2;
+    optional int32      histScore   = 3;
+}
+
+message NoticeInfo {
+    optional bytes  name    = 1;
+    optional bytes  killer  = 2;
+
+    optional int32  count   = 3;        // kill count, or piece count
+    optional int32  nodeId  = 4;        // == 0, it is wall, otherwise mine
+}
+
+message BorderInfo {
+    optional int32  left    = 1;
+    optional int32  right   = 2;
+    optional int32  bottom  = 3;
+    optional int32  top     = 4;
+
+    optional int32  sightViewWidth  = 5;
+    optional int32  sightViewHeight = 6;
+}
+
+message LeaderBoard {
+    message Type_FFA {
+        optional int32 nodeId   = 1;
+        optional bytes name     = 2;
+        optional int32 score    = 3;
+    }
+
+    message Type_PieChart {
+        optional int32 teamId       = 1;
+        optional float teamRatio    = 2;
+    }
+
+    repeated Type_FFA       ffa_data    = 1;
+    repeated Type_PieChart  pie_data    = 2;
+}
+
+message UpdateView {
+    message DestroyNodes {
+        optional int32 nodeId       = 1;
+    }
+
+    message UpdateNodes {
+        optional int32      nodeId      = 1;
+        optional int32      nodeType    = 2;
+        optional bytes      name        = 3;
+
+        optional float      pos_x       = 5;
+        optional float      pos_y       = 6;
+        optional float      moveAngle   = 7;
+
+        repeated int32      buffs       = 10;
+    }
+
+    optional PlayerInfo     playerInfo    = 1;
+
+    repeated DestroyNodes   destroyNodes  = 2;
+    repeated int32          invalidNodes  = 3;
+    repeated UpdateNodes    updateNodes   = 4;
+}

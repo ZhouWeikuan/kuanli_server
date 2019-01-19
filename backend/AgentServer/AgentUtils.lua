@@ -482,6 +482,8 @@ class.handle_game = function (self, args)
         self:gameReqJoin(args.msgBody)
     elseif args.subType <= protoTypes.CGGAME_PROTO_SUBTYPE_QUITSTAGE then
         self:gameRemoteData(args.subType, args.msgBody)
+    elseif args.subType >= protoTypes.CGGAME_PROTO_SUBTYPE_USER_DEFINE then
+        self:gameRemoteData(args.subType, args.msgBody)
     else
         skynet.error("unhandled game", args.mainType, args.subType, args.msgBody)
     end
